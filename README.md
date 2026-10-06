@@ -4,6 +4,8 @@ Quest port of [VainSabers by Vainstains](https://github.com/Vainstains/VainSaber
 Target: **Beat Saber 1.40.8_7379**, **Scotland2**, ARM64.
 Version: **0.0.5 beta**, Quest revision 9.
 
+# THIS MOD WAS CREATED WITH AI. Because VainStains doesn't wanna do port i had to use AI to create it for quest users. 
+
 ## Installation and presets
 
 Install the release QMOD through your Quest mod manager. Open **Mods → VainSabers** in the gameplay setup menu.
