@@ -1,0 +1,23 @@
+#pragma once
+#include <string_view>
+namespace VainSabers {
+// Embedded VainSabers.settings.bsml from the user's PC DLL 34ce50e.
+inline constexpr std::string_view kPcHomeMarkup = R"BSML(<bg xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+    xsi:noNamespaceSchemaLocation='https://monkeymanboy.github.io/BSML-Docs/BSMLSchema.xsd'>
+    <vertical spacing="1" horizontal-fit="Unconstrained" id="root" child-expand-height="false">
+        <toggle-setting text="Enable VainSabers" value="modEnabled" pref-width="50" apply-on-change="true" hover-hint="Enables and disables VainSabers" />
+        <button text="Refresh presets" on-click="UpdatePresetDropdown"/>
+        <dropdown-list-setting text="Menu Display" value="menuMode" choices="menuModeChoices" bind-value="true" apply-on-change="true" hover-hint="How sabers appear in menu: Vanilla, Same as gameplay, Separate menu preset"/>
+        <horizontal horizontal-fit="PreferredSize" spacing="1">
+            <dropdown-list-setting id="SaberPresetDropdown" text="Gameplay Saber" value="SelectedPreset" choices="PresetNames" bind-value="true" apply-on-change="true" pref-width="55"/>
+            <button id="EditSaberButton" text="Edit" on-click="EditSaberPreset" pref-width="20"/>
+        </horizontal>
+        <horizontal id="MenuPresetContainer" horizontal-fit="PreferredSize" spacing="1">
+            <dropdown-list-setting id="MenuPresetDropdown" text="Menu Saber" value="SelectedMenuPreset" choices="MenuPresetNames" bind-value="true" apply-on-change="true" pref-width="55"/>
+            <button id="EditMenuButton" text="Edit" on-click="EditMenuPreset" pref-width="20"/>
+        </horizontal>
+        <button on-click="CreateNewPreset" text="Create New Preset"/>
+        <button on-click="ToggleSettingsPanel" text="Settings"/>
+    </vertical>
+</bg>)BSML";
+} // namespace VainSabers

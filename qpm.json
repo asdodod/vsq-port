@@ -1,0 +1,80 @@
+{
+  "$schema": "https://raw.githubusercontent.com/QuestPackageManager/QPM.Package/refs/heads/main/qpm.schema.json",
+  "version": "0.0.5",
+  "sharedDir": "shared",
+  "dependenciesDir": "extern",
+  "info": {
+    "name": "VainSabers",
+    "id": "vainsabers",
+    "version": "0.0.5",
+    "url": null,
+    "additionalData": {
+      "overrideSoName": "libvainsabers.so",
+      "cmake": true
+    }
+  },
+  "workspace": {
+    "scripts": {
+      "build": [
+        "pwsh ./scripts/build.ps1"
+      ],
+      "clean": [
+        "pwsh ./scripts/build.ps1 -clean"
+      ],
+      "copy": [
+        "pwsh ./scripts/copy.ps1 $0:?"
+      ],
+      "logcat": [
+        "pwsh ./scripts/start-logging.ps1"
+      ],
+      "qmod": [
+        "pwsh ./scripts/build.ps1",
+        "pwsh ./scripts/createqmod.ps1"
+      ],
+      "restart": [
+        "pwsh ./scripts/restart-game.ps1"
+      ],
+      "stack": [
+        "pwsh ./scripts/ndk-stack.ps1"
+      ],
+      "tomb": [
+        "pwsh ./scripts/pull-tombstone.ps1"
+      ]
+    },
+    "qmodIncludeDirs": [
+      "./build",
+      "./extern/libs"
+    ],
+    "qmodIncludeFiles": [],
+    "qmodOutput": "./VainSabers.qmod"
+  },
+  "dependencies": [
+    {
+      "id": "beatsaber-hook",
+      "versionRange": "=6.4.2",
+      "additionalData": {}
+    },
+    {
+      "id": "scotland2",
+      "versionRange": "=0.1.7",
+      "additionalData": {
+        "includeQmod": false
+      }
+    },
+    {
+      "id": "custom-types",
+      "versionRange": "=0.18.4",
+      "additionalData": {}
+    },
+    {
+      "id": "bs-cordl",
+      "versionRange": "=4008.0.0",
+      "additionalData": {}
+    },
+    {
+      "id": "bsml",
+      "versionRange": "=0.4.55",
+      "additionalData": {}
+    }
+  ]
+}

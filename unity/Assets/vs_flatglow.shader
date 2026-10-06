@@ -1,0 +1,131 @@
+Shader "Unlit/vs_flatglow"
+{
+    Properties
+        {
+            _ColorBoost ("RGB Multiplier", Range(0,4)) = 1
+            _GlowBoost  ("Glow (Alpha) Multiplier", Range(0,4)) = 1
+            _DepthOffset ("Depth Offset", Float) = 0
+            _CustomColor ("Custom Color", Color) = (1,1,1,1)
+        }
+    
+        SubShader
+        {
+            Tags { "Queue"="Transparent+180" "RenderType"="Transparent" "IgnoreProjector"="True" }
+            LOD 100
+            Cull Off
+            ZWrite Off
+            // ZTest defaults to LEqual; keep it unless you need different sorting behavior
+    
+            // -------- Pass 1: RGB only (flat color from vertex colors) --------
+            Pass
+            {
+                Name "RGB"
+                // Standard premultiplied? No—this assumes non-premultiplied vertex colors.
+                Blend SrcAlpha OneMinusSrcAlpha
+                // Only write RGB channels; keep destination alpha untouched.
+                ColorMask RGB
+    
+                CGPROGRAM
+                #pragma vertex vert
+                #pragma fragment frag
+                #include "UnityCG.cginc"
+    
+                float _ColorBoost;
+                float _DepthOffset;
+                float4 _CustomColor;
+                float _CustomBlend;
+    
+                struct appdata
+                {
+                    float4 vertex : POSITION;
+                    float4 color  : COLOR;
+                    UNITY_VERTEX_INPUT_INSTANCE_ID
+                };
+    
+                struct v2f
+                {
+                    float4 pos   : SV_POSITION;
+                    fixed4 color : COLOR0;
+                    UNITY_VERTEX_OUTPUT_STEREO
+                };
+    
+                v2f vert (appdata v)
+                {
+                    v2f o;
+                    UNITY_SETUP_INSTANCE_ID(v);
+                    UNITY_INITIALIZE_OUTPUT(v2f, o);
+                    UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
+                    o.pos   = UnityObjectToClipPos(v.vertex);
+                    o.pos.z += _DepthOffset;
+                    o.color = v.color;
+                    return o;
+                }
+
+                fixed4 frag (v2f i) : SV_Target
+                {
+                    // Gradient base color from vertex, then custom blend in shader
+                    float3 baseRgb = i.color.rgb;
+                    float3 blended = lerp(baseRgb, _CustomColor.rgb, saturate(_CustomBlend));
+                    return fixed4(saturate(blended * _ColorBoost), i.color.a);
+                }
+                ENDCG
+            }
+    
+            // -------- Pass 2: Alpha only (glow mask from vertex alpha) --------
+            Pass
+            {
+                Name "ALPHA"
+                // Only touch the alpha channel.
+                ColorMask A
+    
+                // Choose ONE of these (default is a standard "alpha over" into A):
+                Blend One OneMinusSrcAlpha           // <- default: composite src alpha into dest alpha
+                // Blend One Zero                    // <- overwrite: src alpha replaces dest alpha
+                // BlendOp Max                       // <- use with Blend One One to take max alpha
+                // Blend One One                     // <- additive alpha accumulation (clamped)
+    
+                CGPROGRAM
+                #pragma vertex vert
+                #pragma fragment frag
+                #include "UnityCG.cginc"
+    
+                float _GlowBoost;
+                float _DepthOffset;
+    
+                struct appdata
+                {
+                    float4 vertex : POSITION;
+                    float4 color  : COLOR;
+                    UNITY_VERTEX_INPUT_INSTANCE_ID
+                };
+    
+                struct v2f
+                {
+                    float4 pos   : SV_POSITION;
+                    fixed  alpha : TEXCOORD0;
+                    UNITY_VERTEX_OUTPUT_STEREO
+                };
+    
+                v2f vert (appdata v)
+                {
+                    v2f o;
+                    UNITY_SETUP_INSTANCE_ID(v);
+                    UNITY_INITIALIZE_OUTPUT(v2f, o);
+                    UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
+                    o.pos   = UnityObjectToClipPos(v.vertex);
+                    o.pos.z += _DepthOffset;
+                    o.alpha = v.color.a;
+                    return o;
+                }
+    
+                fixed4 frag (v2f i) : SV_Target
+                {
+                    // Write only alpha (glow), RGB is discarded by ColorMask.
+                    return fixed4(0, 0, 0, saturate(i.alpha * _GlowBoost));
+                }
+                ENDCG
+            }
+        }
+    
+        FallBack Off
+}
