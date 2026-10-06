@@ -5,6 +5,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/utils.cmake)
 
 
 # read in information about the mod from qpm.json
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/qpm.json")
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/qpm.json PACKAGE_JSON)
 
 string(JSON PACKAGE_INFO GET ${PACKAGE_JSON} info)

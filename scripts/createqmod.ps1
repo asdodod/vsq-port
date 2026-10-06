@@ -15,6 +15,7 @@ if ($help -eq $true) {
     exit
 }
 
+$ErrorActionPreference = 'Stop'
 $mod = "./mod.json"
 
 & $PSScriptRoot/validate-modjson.ps1
@@ -22,6 +23,7 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 $modJson = Get-Content $mod -Raw | ConvertFrom-Json
+& "$PSScriptRoot/assert-load-phase.ps1" -Manifest $modJson
 
 if ($qmodName -eq "") {
     $qmodName = $modJson.name

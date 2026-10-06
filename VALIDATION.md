@@ -1,3 +1,14 @@
+# Revision 11 validation — 0.0.6
+
+- Full Android NDK r27 / ARM64 build passed with linker --no-undefined. Native setup/late_load exports are present and the compiled version is 0.0.6.
+- Official QuestPatcher QMOD schema passed. Generated manifest and QPM template put the library only in lateModFiles.
+- Load-phase regression passed for the template, generated manifest and actual QMOD. The guard rejects both an early-only install and a duplicate in both phases.
+- Packaged library bytes match the native build. Dynamic undefined dependency symbols are unchanged from revision 10; BSML symbols with Unity parameter types are expected dependency references, not direct Unity engine imports.
+- PowerShell scripts parse successfully. Lazy loading already exists in the menu-pointer and gameplay-saber paths, including failure fallback.
+- No Unity or ADB/headset connection was started. The affected user's startup crash has not been reproduced locally or retested on their headset. See STARTUP_FIX.md; exact null-call origin remains unproven.
+Current QMOD SHA256: 8EA6773539B93ECC6433EBA1200B17BC89858008A77202F92147A0B9698EE3FB
+Current library SHA256: 90132129251CE02EDD900AC1772AA35BC86748E46DF1D6B05F2065F4FF8D3693
+
 # Revision 10 validation
 
 - Working ARM64 build passed with the new trail resource implementation and versioned OBJ import. The published native sources match the working sources; the separate full publication build recorded below was performed for revision 8.

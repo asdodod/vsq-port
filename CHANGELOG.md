@@ -1,3 +1,10 @@
+# 0.0.6 — Quest revision 11
+
+- Correct the QMOD installation phase: `libvainsabers.so` is only in `lateModFiles`, not `early_mods`. This matches the working placement reported for the startup crash.
+- Defer AssetBundle loading until the game's saber/menu-pointer callbacks instead of creating Unity assets during loader initialization.
+- Reject early or duplicate assignments during packaging, and test both manifest generation and the actual QMOD.
+- Synchronize native/QMOD version 0.0.6 and regenerate CMake when QPM metadata changes.
+- See STARTUP_FIX.md for upgrade instructions and the limits of the crash report. The original affected headset must retest this build.
 # 0.0.5 beta — Quest revision 10
 
 - Match PC OBJ import: version 2 reflects Z for vertices and normals and reverses triangle winding; version 1 keeps its coordinate convention. Normalize explicit OBJ normals.

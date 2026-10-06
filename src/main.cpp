@@ -233,10 +233,10 @@ MOD_EXTERN_FUNC void setup(CModInfo *info) noexcept {
     getConfig().Load();
     VainSabers::GetPluginConfig().Load();
 
-    VS_LOG("VainSabers Quest v0.0.5 - setup complete!");
+    VS_LOG("VainSabers Quest %s - setup complete!", VERSION);
 }
 
-// Called later on in the game loading - Unity and il2cpp are fully ready
+// Registered from Scotland2's mods directory, after early mods initialize.
 MOD_EXTERN_FUNC void late_load() noexcept {
     il2cpp_functions::Init();
 
@@ -245,14 +245,10 @@ MOD_EXTERN_FUNC void late_load() noexcept {
     // Register custom types
     custom_types::Register::AutoRegister();
 
-    // Load the VainSabers AssetBundle and log all asset names
-    VS_LOG("VainSabers Quest - loading vs_assets bundle (Phase 1)...");
-    bool assetsOk = VainSabers::Assets::LoadAssets();
-    if (assetsOk) {
-        VS_LOG("VainSabers Quest - Phase 1 SUCCESS: vs_assets bundle loaded!");
-    } else {
-        VS_LOG("VainSabers Quest - Phase 1 WARNING: vs_assets bundle could not be loaded!");
-    }
+    // Loading a bundle creates Unity objects. Wait for a real saber/pointer
+    // callback instead of doing that while the loader initializes other mods.
+    // Both attachment paths load lazily and retain vanilla visuals on failure.
+    VS_LOG("VainSabers Quest - assets deferred until saber/pointer creation");
 
     // Ensure default presets exist on disk (Phase 5 & 6)
     VS_LOG("VainSabers Quest - ensuring default presets exist (Phase 5 & 6)...");
