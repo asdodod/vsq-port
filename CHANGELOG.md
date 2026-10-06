@@ -1,3 +1,11 @@
+# 0.0.5 beta — Quest revision 10
+
+- Match PC OBJ import: version 2 reflects Z for vertices and normals and reverses triangle winding; version 1 keeps its coordinate convention. Normalize explicit OBJ normals.
+- Accept PC vector objects as well as arrays for positions, rotations and texture atlas settings.
+- Load color/glow PNGs, wrap/atlas settings and animated 3D noise for blade trails. Reuse one seeded noise texture and release owned 2D textures with their trail.
+- Preserve version 1 when editing legacy OBJ documents to avoid changing model orientation on Save.
+- Validate 98,304 native noise samples against seeded .NET Random, Wiimote coordinates and the supplied flame preset's embedded PNG resources. ARM64 compilation passes; headset testing remains pending.
+
 # 0.0.5 beta — Quest revision 9
 
 - Match PC BlurSaberData.AddComponent defaults for a newly added part: Length 0.100, Start/End Radius 0.030 and Blur Fade 1.000. Existing presets and Duplicate are unchanged.

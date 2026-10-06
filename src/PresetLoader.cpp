@@ -88,7 +88,43 @@ static UnityEngine::Vector3 GetVector3(const rapidjson::Value &obj, const char *
                                     (*v)[1].IsNumber() ? (*v)[1].GetFloat() : 0.0f,
                                     (*v)[2].IsNumber() ? (*v)[2].GetFloat() : 0.0f};
     }
+    if (v && v->IsObject())
+        return {GetFloat(*v, "x", defVal.x), GetFloat(*v, "y", defVal.y), GetFloat(*v, "z", defVal.z)};
     return defVal;
+}
+
+static UnityEngine::Vector2 GetVector2(const rapidjson::Value &obj, const char *key,
+                                       UnityEngine::Vector2 fallback = {1, 1}) {
+    auto v = FindMemberCaseInsensitive(obj, key);
+    if (v && v->IsObject())
+        return {GetFloat(*v, "x", fallback.x), GetFloat(*v, "y", fallback.y)};
+    if (v && v->IsArray() && v->Size() >= 2)
+        return {(*v)[0].IsNumber() ? (*v)[0].GetFloat() : fallback.x,
+                (*v)[1].IsNumber() ? (*v)[1].GetFloat() : fallback.y};
+    return fallback;
+}
+
+static void ParseTrailResources(const rapidjson::Value &obj, SaberTrailData &trail) {
+    trail.colorTexture = GetString(obj, "colorTexture", GetString(obj, "colorTextureName"));
+    trail.glowTexture = GetString(obj, "glowTexture", GetString(obj, "glowTextureName"));
+    trail.colorTextureBase64 = GetString(obj, "colorTextureBase64");
+    trail.glowTextureBase64 = GetString(obj, "glowTextureBase64");
+    trail.textureWrap = std::clamp(GetInt(obj, "textureWrap", 1), 0, 2);
+    auto count = [](UnityEngine::Vector2 value) {
+        return UnityEngine::Vector2{std::clamp(value.x, 1.f, 16.f), std::clamp(value.y, 1.f, 16.f)};
+    };
+    auto speed = [](UnityEngine::Vector3 value) {
+        return UnityEngine::Vector3{std::clamp(value.x, 0.f, 120.f), value.y > .5f ? 1.f : 0.f,
+                                    value.z > .5f ? 1.f : 0.f};
+    };
+    trail.colorAtlasCount = count(GetVector2(obj, "colorAtlasCount"));
+    trail.glowAtlasCount = count(GetVector2(obj, "glowAtlasCount"));
+    trail.colorAtlasSpeedFlip = speed(GetVector3(obj, "colorAtlasSpeedFlip", {1, 0, 0}));
+    trail.glowAtlasSpeedFlip = speed(GetVector3(obj, "glowAtlasSpeedFlip", {1, 0, 0}));
+    trail.noiseEnabled = GetBool(obj, "noiseEnabled", false);
+    trail.noiseIntensity = GetFloat(obj, "noiseIntensity", .02f);
+    trail.noiseScale = GetFloat(obj, "noiseScale", 2);
+    trail.noiseSpeed = GetFloat(obj, "noiseSpeed", 1);
 }
 
 static UnityEngine::Color GetColor(const rapidjson::Value &obj, const char *key,
@@ -185,6 +221,7 @@ bool PresetLoader::LoadFromJsonString(std::string_view json, Preset &outPreset) 
             part.rotation = GetVector3(pObj, "rotation", UnityEngine::Vector3{0.0f, 0.0f, 0.0f});
             part.length = GetFloat(pObj, "length", 1.0f);
             part.geometryMode = ParseGeometryMode(pObj);
+            part.presetVersion = outPreset.version;
             part.linkedPartIndex = GetInt(pObj, "linkedPartIndex", -1);
             part.spriteSizeX = GetFloat(pObj, "spriteSizeX", .2f);
             part.spriteSizeY = GetFloat(pObj, "spriteSizeY", .2f);
@@ -354,6 +391,7 @@ bool PresetLoader::LoadFromJsonString(std::string_view json, Preset &outPreset) 
             td.motionActivation = GetFloat(tObj, "motionActivation", 1.0f);
             td.motionFadePower = GetFloat(tObj, "motionFadePower", 0.0f);
             ParseTrailGradients(tObj, td);
+            ParseTrailResources(tObj, td);
             outPreset.tipTrails.push_back(td);
         }
     }
@@ -379,6 +417,7 @@ bool PresetLoader::LoadFromJsonString(std::string_view json, Preset &outPreset) 
             td.motionActivation = GetFloat(tObj, "motionActivation", 1.0f);
             td.motionFadePower = GetFloat(tObj, "motionFadePower", 0.0f);
             ParseTrailGradients(tObj, td);
+            ParseTrailResources(tObj, td);
             outPreset.bladeTrails.push_back(td);
         }
     }

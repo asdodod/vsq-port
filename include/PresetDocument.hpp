@@ -63,7 +63,16 @@ struct PresetDocument {
                             if (ring.IsObject())
                                 SetNumber(ring, "glow", 0);
                 }
-            SetNumber(json, "version", 2, true);
+            // Changing only Version would flip legacy OBJ resources on the next load.
+            // Keep their coordinate convention until those resources are migrated too.
+            bool legacyObj = false;
+            for (auto &p : parts->GetArray()) {
+                auto mode = Find(p, "geometryMode");
+                legacyObj |= mode && ((mode->IsInt() && mode->GetInt() == 3) ||
+                                      (mode->IsString() && std::string_view(mode->GetString()) == "Obj"));
+            }
+            if (!legacyObj)
+                SetNumber(json, "version", 2, true);
         }
         original = std::string(source);
         part = 0;

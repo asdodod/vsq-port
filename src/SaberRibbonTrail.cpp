@@ -1,6 +1,7 @@
 #include "SaberRibbonTrail.hpp"
 #include "TrailMotion.hpp"
 #include "RibbonGeometry.hpp"
+#include "TrailResources.hpp"
 #include "VainSabersAssets.hpp"
 #include "UnityEngine/GameObject.hpp"
 #include "UnityEngine/Shader.hpp"
@@ -119,6 +120,7 @@ void SaberRibbonTrail::ApplyConfig(const VainSabers::SaberTrailData &data) {
         _material->SetFloat(props._GlowBoost, data.glow);
         _material->SetFloat(props._DepthOffset, data.depthOffset);
         _material->SetColor(props._CustomColor, d->tonemappedGame);
+        ApplyTrailResources(_material, data, _colorTexture, _glowTexture);
     }
 
     RebuildMesh();
@@ -319,6 +321,10 @@ void SaberRibbonTrail::LateUpdate() {
 }
 
 void SaberRibbonTrail::OnDestroy() {
+    if (_colorTexture)
+        UnityEngine::Object::Destroy(_colorTexture);
+    if (_glowTexture)
+        UnityEngine::Object::Destroy(_glowTexture);
     if (_mesh) {
         UnityEngine::Object::Destroy(_mesh);
         _mesh = nullptr;

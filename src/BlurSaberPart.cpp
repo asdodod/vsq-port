@@ -2,6 +2,7 @@
 #include "VainSabersAssets.hpp"
 #include "PluginConfig.hpp"
 #include "PresetResources.hpp"
+#include "TrailResources.hpp"
 #include "PresetGeometry.hpp"
 #include "UnityEngine/ImageConversion.hpp"
 #include "UnityEngine/Time.hpp"
@@ -21,22 +22,6 @@
 DEFINE_TYPE(VainSabers, BlurSaberPart);
 
 namespace VainSabers {
-static UnityEngine::Texture2D *LoadPresetTexture(const std::string &name, const std::string &base64, int wrap) {
-    auto bytes = DecodePresetAsset(name, base64);
-    if (bytes.empty())
-        return nullptr;
-    ArrayW<uint8_t> data(bytes.size());
-    std::copy(bytes.begin(), bytes.end(), data.begin());
-    auto tex = UnityEngine::Texture2D::New_ctor(2, 2, UnityEngine::TextureFormat::RGBA32, true);
-    if (!UnityEngine::ImageConversion::LoadImage(tex, data, false)) {
-        UnityEngine::Object::Destroy(tex);
-        return nullptr;
-    }
-    tex->set_wrapMode(UnityEngine::TextureWrapMode(wrap));
-    tex->set_filterMode(UnityEngine::FilterMode::Bilinear);
-    return tex;
-}
-
 static UnityEngine::Texture2D *MakeGradient(const std::vector<FloatGradientKey> &keys, float fallback,
                                             float rimFactor = 0, float rimPower = 3) {
     // Float pixels preserve the PC's signed rim addends; RGBA32 would clamp them.

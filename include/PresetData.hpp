@@ -1,6 +1,7 @@
 #pragma once
 
 #include "UnityEngine/Vector3.hpp"
+#include "UnityEngine/Vector2.hpp"
 #include "UnityEngine/Color.hpp"
 #include <string>
 #include <vector>
@@ -31,6 +32,7 @@ struct PartData {
     UnityEngine::Vector3 rotation{0.0f, 0.0f, 0.0f}; // Euler angles in degrees
     float length = 1.0f;
     GeometryType geometryMode = GeometryType::Simple;
+    int presetVersion = 2; // OBJ handedness changed in the PC version 2 format.
     int linkedPartIndex = -1;
     float spriteSizeX = .2f, spriteSizeY = .2f, objScale = 1;
     int spriteDivisionsX = 1, spriteDivisionsY = 1;
@@ -115,6 +117,12 @@ struct SaberTrailData {
     float fade = 1.0f;
     float motionActivation = 1.0f;
     float motionFadePower = 0.0f;
+    std::string colorTexture, glowTexture, colorTextureBase64, glowTextureBase64;
+    int textureWrap = 1;
+    UnityEngine::Vector2 colorAtlasCount{1, 1}, glowAtlasCount{1, 1};
+    UnityEngine::Vector3 colorAtlasSpeedFlip{1, 0, 0}, glowAtlasSpeedFlip{1, 0, 0};
+    bool noiseEnabled = false;
+    float noiseIntensity = .02f, noiseScale = 2, noiseSpeed = 1;
 };
 inline UnityEngine::Color TrailColor(const SaberTrailData &trail, float t, UnityEngine::Color game) {
     auto col = trail.color;

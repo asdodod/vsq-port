@@ -1,10 +1,12 @@
 #include "PresetGeometry.hpp"
 #include "PresetResources.hpp"
+#include "ObjCoordinates.hpp"
 #include "UnityEngine/Bounds.hpp"
 #include "UnityEngine/Vector4.hpp"
 #include "UnityEngine/Vector2.hpp"
 #include <sstream>
 #include <algorithm>
+#include <cmath>
 namespace VainSabers {
 namespace {
 template <class T> ArrayW<T> Array(const std::vector<T> &v) {
@@ -83,8 +85,15 @@ UnityEngine::Mesh *MakePresetGeometry(const PartData &p) {
             words >> type;
             if (type == "v" || type == "vn") {
                 float x, y, z;
-                if (words >> x >> y >> z)
-                    (type == "v" ? vertices : normals).push_back({x, y, z});
+                if (words >> x >> y >> z) {
+                    UnityEngine::Vector3 value{x, y, ObjCoordinateZ(z, p.presetVersion)};
+                    if (type == "vn") {
+                        float magnitude = std::sqrt(x * x + y * y + z * z);
+                        if (magnitude > .00001f)
+                            value = {value.x / magnitude, value.y / magnitude, value.z / magnitude};
+                    }
+                    (type == "v" ? vertices : normals).push_back(value);
+                }
             } else if (type == "vt") {
                 float u, v;
                 if (words >> u >> v)
@@ -115,7 +124,10 @@ UnityEngine::Mesh *MakePresetGeometry(const PartData &p) {
                         return nullptr;
                 }
                 for (size_t i = 1; i + 1 < face.size(); ++i)
-                    mesh.triangles.insert(mesh.triangles.end(), {face[0], face[i], face[i + 1]});
+                    if (ReverseObjWinding(p.presetVersion))
+                        mesh.triangles.insert(mesh.triangles.end(), {face[0], face[i + 1], face[i]});
+                    else
+                        mesh.triangles.insert(mesh.triangles.end(), {face[0], face[i], face[i + 1]});
             }
         }
         auto result = mesh.Build();

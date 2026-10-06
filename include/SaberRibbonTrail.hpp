@@ -9,6 +9,7 @@
 #include "UnityEngine/MeshRenderer.hpp"
 #include "UnityEngine/Mesh.hpp"
 #include "UnityEngine/Material.hpp"
+#include "UnityEngine/Texture2D.hpp"
 #include "UnityEngine/MaterialPropertyBlock.hpp"
 #include "UnityEngine/Color.hpp"
 #include "UnityEngine/Vector4.hpp"
@@ -36,6 +37,8 @@ DECLARE_CLASS_CODEGEN(VainSabers, SaberRibbonTrail, UnityEngine::MonoBehaviour) 
     DECLARE_INSTANCE_FIELD(UnityW<UnityEngine::MeshRenderer>, _meshRenderer);
     DECLARE_INSTANCE_FIELD(UnityW<UnityEngine::Mesh>, _mesh);
     DECLARE_INSTANCE_FIELD(UnityW<UnityEngine::Material>, _material);
+    DECLARE_INSTANCE_FIELD(UnityW<UnityEngine::Texture2D>, _colorTexture);
+    DECLARE_INSTANCE_FIELD(UnityW<UnityEngine::Texture2D>, _glowTexture);
     DECLARE_INSTANCE_FIELD(UnityEngine::MaterialPropertyBlock *, _propBlock);
     DECLARE_INSTANCE_FIELD(ArrayW<UnityEngine::Vector3>, _vertices);
     DECLARE_INSTANCE_FIELD(ArrayW<UnityEngine::Color>, _colors);
