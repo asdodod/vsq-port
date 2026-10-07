@@ -4,7 +4,7 @@
 
 Quest port of [VainSabers by Vainstains](https://github.com/Vainstains/VainSabers): customizable sabers, motion blur, blade and tip trails, and an in-game preset editor.
 
-Target: **Beat Saber 1.40.8_7379**, ARM64, **Scotland2**. Source version: **0.0.7**.
+Target: **Beat Saber 1.40.8_7379**, ARM64, **Scotland2**. VainSabers version: **0.0.5**. **Quest port version 07**.
 
 ## Installation
 

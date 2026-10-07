@@ -6,7 +6,7 @@
   "info": {
     "name": "VainSabers",
     "id": "vainsabers",
-    "version": "0.0.7",
+    "version": "0.0.5",
     "url": null,
     "additionalData": {
       "overrideSoName": "libvainsabers.so",

@@ -5,10 +5,10 @@
   "id": "vainsabers",
   "modloader": "Scotland2",
   "author": "VainSabers Quest Port",
-  "version": "0.0.7",
+  "version": "0.0.5",
   "packageId": "com.beatgames.beatsaber",
   "packageVersion": "1.40.8_7379",
-  "description": "VainSabers Quest: motion blur, PC-style menu, preset editor and Export. Shared presets: /sdcard/VainSabers.",
+  "description": "VainSabers 0.0.5 - Quest port version 07: motion blur, PC-style menu, preset editor and Export. Shared presets: /sdcard/VainSabers.",
   "dependencies": [
     {
       "version": "^6.4.0",

@@ -60,7 +60,8 @@ static UnityEngine::Texture3D *NoiseTexture() {
 }
 
 void ApplyTrailResources(UnityEngine::Material *material, const SaberTrailData &data,
-                         UnityW<UnityEngine::Texture2D> &color, UnityW<UnityEngine::Texture2D> &glow) {
+                         UnityW<UnityEngine::Texture2D> &color, UnityW<UnityEngine::Texture2D> &glow,
+                         bool gpuNoise) {
     if (!material)
         return;
     if (color)
@@ -82,11 +83,11 @@ void ApplyTrailResources(UnityEngine::Material *material, const SaberTrailData &
                         {data.colorAtlasSpeedFlip.x, data.colorAtlasSpeedFlip.y, data.colorAtlasSpeedFlip.z, 0});
     material->SetVector(id("_GlowTexAtlasSpeedFlip"),
                         {data.glowAtlasSpeedFlip.x, data.glowAtlasSpeedFlip.y, data.glowAtlasSpeedFlip.z, 0});
-    material->SetFloat(id("_NoiseIntensity"), data.noiseEnabled ? data.noiseIntensity : 0);
+    material->SetFloat(id("_NoiseIntensity"), gpuNoise && data.noiseEnabled ? data.noiseIntensity : 0);
     material->SetFloat(id("_NoiseScale"), data.noiseScale);
     material->SetFloat(id("_NoiseSpeed"), data.noiseSpeed);
     material->SetFloat(id("_TrailDuration"), data.length * .001f);
-    if (data.noiseEnabled)
+    if (gpuNoise && data.noiseEnabled)
         material->SetTexture(id("_NoiseTex"), NoiseTexture());
     VS_LOG("Trail assets: color=%s (%d), glow=%s (%d), noise=%d intensity=%.3f scale=%.3f speed=%.3f",
            data.colorTexture.c_str(), color ? 1 : 0, data.glowTexture.c_str(), glow ? 1 : 0, data.noiseEnabled,

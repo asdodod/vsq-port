@@ -24,3 +24,10 @@ try {
 } finally { $writer.Dispose(); $stream.Dispose() }
 & $NodePath (Join-Path $projectRoot 'tests/resources_regression.mjs') $wasm $reference $PresetDirectory
 if ($LASTEXITCODE -ne 0) { throw 'Resource regression failed.' }
+
+$noiseWasm = Join-Path $outputDirectory 'trail-noise.wasm'
+& $compiler --target=wasm32 -std=c++20 -O2 -fno-threadsafe-statics -nostdlib '-Wl,--no-entry' '-Wl,--export-all' `
+    "-I$projectRoot/include" (Join-Path $projectRoot 'tests/trail_noise_regression.cpp') -o $noiseWasm
+if ($LASTEXITCODE -ne 0) { throw 'Trail noise regression build failed.' }
+& $NodePath (Join-Path $projectRoot 'tests/trail_noise_regression.mjs') $noiseWasm $reference
+if ($LASTEXITCODE -ne 0) { throw 'Trail noise regression failed.' }

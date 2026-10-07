@@ -1,7 +1,9 @@
 # Patch notes
 
-## 0.0.7 — Quest revision 12
+## VainSabers 0.0.5 — Quest port version 07
 
+- Bake blade-trail vertex noise into the native mesh update once per frame, preserving the original seeded noise and filtering. Both eyes and glow passes reuse those vertices.
+- Skip vertex uploads and rendering for fully invisible blade trails.
 - Fixed switching from Simple to Advanced: rings inherit the start/end properties and drive the Advanced mesh instead of leaving a Simple fallback.
 - Matched PC ring insertion, minimum ring count, field order and Up/Right offsets.
 - Replaced the OBJ filename input with a model selector and aligned its geometry fields with PC.
@@ -12,12 +14,12 @@
 - Nested texture controls preserve their parent editor when a picker or keypad closes.
 - Corrected linked-part editing and animator ranges; imported look-direction and glow-pass settings are respected.
 
-## 0.0.6 — Quest revision 11
+## Earlier Quest port builds — startup fixes
 
 - Fixed the mod's installation phase to use late loading.
 - Deferred Unity asset loading until the game is ready to use the sabers.
 
-## 0.0.5 beta
+## Earlier Quest port builds — editor and rendering
 
 - Matched PC defaults for new parts.
 - Corrected version-dependent OBJ orientation and preserved legacy OBJ versions when saving.

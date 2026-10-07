@@ -2,6 +2,7 @@
 #include "TrailMotion.hpp"
 #include "RibbonGeometry.hpp"
 #include "TrailResources.hpp"
+#include "TrailNoise.hpp"
 #include "VainSabersAssets.hpp"
 #include "UnityEngine/GameObject.hpp"
 #include "UnityEngine/Shader.hpp"
@@ -113,6 +114,8 @@ void SaberRibbonTrail::ApplyConfig(const VainSabers::SaberTrailData &data) {
     auto *d = GetNativeData();
     d->trailData = data;
     d->segmentCount = std::clamp(data.length / 6, 4, 512);
+    if (data.noiseEnabled && data.noiseIntensity > .0001f)
+        SharedTrailNoise();
 
     if (_material) {
         const auto &props = RibbonShaderProps::Get();
@@ -120,7 +123,7 @@ void SaberRibbonTrail::ApplyConfig(const VainSabers::SaberTrailData &data) {
         _material->SetFloat(props._GlowBoost, data.glow);
         _material->SetFloat(props._DepthOffset, data.depthOffset);
         _material->SetColor(props._CustomColor, d->tonemappedGame);
-        ApplyTrailResources(_material, data, _colorTexture, _glowTexture);
+        ApplyTrailResources(_material, data, _colorTexture, _glowTexture, false);
     }
 
     RebuildMesh();
@@ -280,13 +283,21 @@ void SaberRibbonTrail::LateUpdate() {
         motionFade = std::exp(-distance * .5f * d->trailData.motionFadePower);
     }
     float opacity = std::clamp(d->opacity * motionFade, 0.f, 1.f);
+    if (opacity <= .00001f || d->trailData.opacity <= 0) {
+        _meshRenderer->set_enabled(false);
+        return;
+    }
 
     // Generate the same 32-pose ribbon in world space, then transform it into
     // the moving mesh's local space once per frame. Reuse the managed buffer.
     auto worldToLocal = get_transform()->get_worldToLocalMatrix();
     float baseFraction = std::clamp(d->trailData.width, 0.f, 1.f);
+    bool useNoise = d->trailData.noiseEnabled && d->trailData.noiseIntensity > .0001f;
+    const auto *noise = useNoise ? &SharedTrailNoise() : nullptr;
+    float scrollTime = useNoise ? UnityEngine::Time::get_time() * d->trailData.noiseSpeed : 0;
     for (int i = 0; i <= d->segmentCount; ++i) {
-        float hist = float(i) / d->segmentCount * 31;
+        float t = float(i) / d->segmentCount;
+        float hist = t * 31;
         int index = std::min(int(hist), 30);
         float frac = hist - index;
         auto pos = RibbonLerp(d->positions[index], d->positions[index + 1], frac);
@@ -294,8 +305,14 @@ void SaberRibbonTrail::LateUpdate() {
         auto up = RibbonLerp(d->ups[index], d->ups[index + 1], frac);
         auto tip = RibbonTip(pos, forward, up, d->trailData.position);
         auto base = RibbonLerp(pos, tip, baseFraction);
-        for (int v = 0; v < 7; ++v)
-            _vertices[i * 7 + v] = RibbonLocalPoint(RibbonLerp(base, tip, v / 6.f), worldToLocal);
+        float scroll = (scrollTime - t * .1f * duration) * .2f;
+        float amount = t * d->trailData.noiseIntensity;
+        for (int v = 0; v < 7; ++v) {
+            auto world = RibbonLerp(base, tip, v / 6.f);
+            if (noise)
+                world = DisplaceTrailVertex(world, d->trailData.noiseScale, scroll, amount, *noise);
+            _vertices[i * 7 + v] = RibbonLocalPoint(world, worldToLocal);
+        }
     }
     _mesh->set_vertices(_vertices);
 
