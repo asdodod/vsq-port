@@ -21,7 +21,7 @@ namespace VainSabers {
 struct MenuEditorState {
     std::shared_ptr<BSML::BSMLParser> homeParser;
     PresetDocument document;
-    std::string status, saveAs;
+    std::string status, saveAs, exportConfirmation;
     bool editing = false, preview = true, holdSabers = true;
     size_t trail = 0, ring = 0;
     bool bladeTrails = false;

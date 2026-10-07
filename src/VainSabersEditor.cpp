@@ -2,6 +2,7 @@
 #include "PluginConfig.hpp"
 #include "PresetLoader.hpp"
 #include "DefaultPresets.hpp"
+#include "PresetFilePolicy.hpp"
 #include "MenuSabers.hpp"
 #include "BlurSaber.hpp"
 #include "UnityEngine/Time.hpp"
@@ -25,6 +26,12 @@ void VainSabersMenuHost::OpenEditor(const std::string &name) {
     ClosePanel();
     auto s = State();
     auto path = PluginConfig::GetPresetFilePath(name);
+    if (IsVainSaberExport(path.c_str())) {
+        s->status = "Cannot edit a read-only .vainsaber export.";
+        VS_LOG("Cannot open editor: preset '%s' is a read-only .vainsaber export", name.c_str());
+        ShowHome();
+        return;
+    }
     auto source = Read(path);
     if (source.empty())
         source = std::string(GetEmbeddedPresetJson(name));
@@ -37,6 +44,7 @@ void VainSabersMenuHost::OpenEditor(const std::string &name) {
     s->document.name = name;
     s->saveAs = name;
     s->status.clear();
+    s->exportConfirmation.clear();
     s->editing = true;
     s->preview = true;
     s->holdSabers = true;
@@ -155,6 +163,8 @@ void VainSabersMenuHost::Preview() {
 void VainSabersMenuHost::SavePreset() {
     auto s = State();
     auto &d = s->document;
+    if (!s->editing || IsVainSaberExport(d.path.c_str()))
+        return;
     if (!ValidName(s->saveAs)) {
         s->status = "Invalid name (1-64 characters; no path separators).";
         BuildEditor();

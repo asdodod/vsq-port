@@ -51,6 +51,7 @@ DECLARE_CLASS_CODEGEN(VainSabers, VainSabersMenuHost, UnityEngine::MonoBehaviour
   public:
     VainSabers::MenuEditorState *State();
     void ShowHome();
+    void UpdateEditorButtons();
     void OpenSettings();
     void ClosePanel();
     void OpenEditor(const std::string &name);

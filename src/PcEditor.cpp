@@ -1,5 +1,6 @@
 #include "PcUI.hpp"
 #include "PluginConfig.hpp"
+#include "PresetFilePolicy.hpp"
 #include "MenuSabers.hpp"
 #include <filesystem>
 #include <cmath>
@@ -7,6 +8,8 @@ namespace VainSabers {
 void VainSabersMenuHost::DeletePreset() {
     auto s = State();
     auto &d = s->document;
+    if (!s->editing || IsVainSaberExport(d.path.c_str()))
+        return;
     std::error_code ec;
     if (!d.path.empty() && std::filesystem::exists(d.path, ec)) {
         std::filesystem::copy_file(d.path, d.path + ".deleted.bak", std::filesystem::copy_options::overwrite_existing,
@@ -66,7 +69,8 @@ void VainSabersMenuHost::BuildEditor() {
                ShowHome();
            },
            {.55f, .35f, .2f, 1});
-    Button(cf.Row(), "Export", [this] { ExportPreset(); }, {.3f, .45f, .3f, 1});
+    Button(cf.Row(), s->exportConfirmation.empty() ? "Export" : s->exportConfirmation,
+           [this] { ExportPreset(); }, {.3f, .45f, .3f, 1});
     Button(cf.Row(),
            s->deleteConfirm == 0   ? "Delete"
            : s->deleteConfirm == 1 ? "Sure?"

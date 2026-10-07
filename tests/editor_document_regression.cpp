@@ -1,9 +1,25 @@
 #include "PresetDocument.hpp"
+#include "PresetFilePolicy.hpp"
 #include <cassert>
 #include <iostream>
 
 int main() {
     using VainSabers::PresetDocument;
+    static_assert(VainSabers::IsVainSaberExport("/sdcard/VainSabers/import.vainsaber"));
+    static_assert(VainSabers::IsVainSaberExport("/sdcard/VainSabers/import.VAINSABER"));
+    static_assert(!VainSabers::IsVainSaberExport("/sdcard/VainSabers/import.vainsaber.json"));
+    static_assert(!VainSabers::IsVainSaberExport(""));
+    PresetDocument copied;
+    assert(copied.Parse(R"({"version":2,"parts":[{"name":"handle","length":0.2,"customField":"keep me","animators":[{"type":"HueShiftAdder","Speed":2}]}]})"));
+    copied.AddPart(true);
+    assert(PresetDocument::Text(*copied.Part(), "name", "") == "handle Copy");
+    assert(PresetDocument::Text(*copied.Part(), "customField", "") == "keep me");
+    assert(PresetDocument::Number(*copied.Part(), "length", 0) == .2f);
+    auto &copiedAnimation = (*PresetDocument::Find(*copied.Part(), "animators"))[0];
+    copied.SetNumber(copiedAnimation, "Speed", 9);
+    assert(PresetDocument::Number((*PresetDocument::Find(copied.Parts()[0], "animators"))[0], "Speed", 0) == 2);
+    copied.AddPart(true);
+    assert(PresetDocument::Text(*copied.Part(), "name", "") == "handle Copy Copy");
     PresetDocument d;
     assert(d.Parse(R"({"version":2,"parts":[{"geometryMode":"Simple","startRadius":0.024,"endRadius":0.012,"startColor":[0.2,0.3,0.4],"endColor":[0.5,0.6,0.7],"startGlow":2,"endOpacity":0.25,"inverted":true,"colorTexture":"old.png","colorTextureBase64":"old bytes","objFile":"old.obj","objBase64":"old mesh","colorAtlasCount":{"x":4,"y":8},"colorAtlasSpeedFlip":{"x":20,"y":1,"z":1}}]})"));
     auto &part = *d.Part();

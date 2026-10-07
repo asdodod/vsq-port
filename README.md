@@ -1,49 +1,84 @@
-# VainSabers Quest
+<div align="center">
 
-**THIS MOD WAS CREATED WITH AI.** AI was used to create and modify this Quest port.
+<img src="docs/assets/banner.svg" alt="VainSabers Quest — create your own sabers" width="100%" />
 
-Quest port of [VainSabers by Vainstains](https://github.com/Vainstains/VainSabers): customizable sabers, motion blur, blade and tip trails, and an in-game preset editor.
+**Custom sabers. Motion blur. Your own style.**
 
-Target: **Beat Saber 1.40.8_7379**, ARM64, **Scotland2**. VainSabers version: **0.0.5**. **Quest port version 07**.
+[![Download](https://img.shields.io/badge/⬇_Download-QMOD-00c8f8?style=for-the-badge)](https://github.com/asdodod/vsq-port/releases/latest)
+[![Patch notes](https://img.shields.io/badge/✦_Patch_Notes-Quest_Port_07-e147ac?style=for-the-badge)](PATCH_NOTES.md)
+[![Original mod](https://img.shields.io/badge/⚔_Original_Mod-Vainstains-8055e7?style=for-the-badge)](https://github.com/Vainstains/VainSabers)
 
-## Installation
+![Version](https://img.shields.io/badge/VainSabers-0.0.5-00c8f8?style=flat-square)
+![Quest port](https://img.shields.io/badge/Quest_port-07-e147ac?style=flat-square)
+![Beat Saber](https://img.shields.io/badge/Beat_Saber-1.40.8__7379-white?style=flat-square)
+![Platform](https://img.shields.io/badge/Quest-ARM64-8055e7?style=flat-square)
+![Modloader](https://img.shields.io/badge/Modloader-Scotland2-8055e7?style=flat-square)
 
-Install the QMOD with your Quest mod manager, such as ModsBeforeFriday, and restart Beat Saber. Open **Mods → VainSabers** in the gameplay setup menu. Enable VainSabers and choose a Gameplay Saber preset.
+</div>
 
-The source version may be newer than the latest published release. Download published builds from [Releases](https://github.com/asdodod/vsq-port/releases).
+---
 
-## Installing presets
+> 🤖 **THIS MOD WAS CREATED WITH AI.** AI was used to create and modify this Quest port. The original VainSabers mod, shaders, assets and presets are by **Vainstains**.
 
-Presets belong in **`/sdcard/VainSabers`**: the `VainSabers` folder in the headset's internal-storage root, beside Download, Movies and Pictures.
+## ⚔️ What is VainSabers Quest?
 
-Copy `.json` or `.vainsaber` files there and press **Refresh presets**. External `.obj` models and `.png`, `.jpg` or `.jpeg` textures go in the same folder. Exported `.vainsaber` files can contain their resources.
+A standalone Quest port of [VainSabers](https://github.com/Vainstains/VainSabers): build custom sabers from individual parts, tune motion blur and trails, and share presets from the in-game editor.
 
-Select a preset under **Gameplay Saber**. **Menu Display** controls menu sabers; a separate menu preset can be selected when using that mode.
+| | Make it yours |
+| :--- | :--- |
+| 🧩 **Geometry** | Simple tubes, Advanced rings, sprites and imported OBJ models |
+| 🌊 **Motion blur** | Adjustable duration and softness |
+| ✨ **Trails** | Blade and tip trails, gradients, textures, animated atlases and blade-trail vertex noise |
+| 🎨 **Materials** | Color, glow, opacity, lit shading and angle gradients |
+| 🛠️ **Editor** | Part transforms, mirroring, linking, previews and preset management |
+| 📦 **Sharing** | JSON presets and .vainsaber exports with embedded models and textures |
 
-## Preset editor
+## 📥 Install
 
-**Create new preset** creates an empty preset and selects it under Gameplay Saber. Press **Edit**, then **+** to add a part.
+1. Use a modded **Beat Saber 1.40.8_7379** installation with **Scotland2**.
+2. Download **VainSabers.qmod** from [Releases](https://github.com/asdodod/vsq-port/releases/latest).
+3. Install it with your Quest mod manager, such as [ModsBeforeFriday](https://mbf.bsquest.xyz/), including its required dependencies.
+4. Restart Beat Saber and open **Mods → VainSabers** in the gameplay setup menu.
+5. Enable VainSabers, choose a **Gameplay Saber** preset and play.
 
-- **Part:** position, rotation, linking, side, mirroring and animators.
-- **Geometry:** Simple tubes, Advanced rings, sprites or OBJ models.
-- **Material:** textures, angle gradients, lit shading, blur and rendering options.
-- **Trails:** custom tip/blade trails, gradients and motion controls. Blade trails also support textures, animated atlases and noise.
+When updating from an old build, uninstall the old mod through your mod manager first, then install the new QMOD. Keep your preset folder.
 
-Tap a number for direct keypad entry. Hold it and turn the controller horizontally to change its value. For textures, select a file and use **…** to edit atlas columns, rows, speed and direction.
+## 📂 Install presets
 
-**Save** writes JSON with a backup. **Export** writes a `.vainsaber` with embedded resources and a PNG into `/sdcard/VainSabers`, ready to share. **Hold Sabers** switches between controller and static previews.
+Put presets in **/sdcard/VainSabers** — the **VainSabers** folder in the headset's internal-storage root, beside **Download**, **Movies** and **Pictures**.
 
-## Bloom and PC compatibility
+Copy **.json** or **.vainsaber** files there, then press **Refresh presets**. External OBJ models and PNG/JPG/JPEG textures belong in the same folder. Self-contained .vainsaber exports include their resources.
 
-Bloom is available separately through [QuestBloom](https://github.com/asdodod/QuestBloom). It is not bundled with VainSabers.
+**Gameplay Saber** selects your in-song preset. **Menu Display** controls menu sabers and lets you use a separate menu preset.
 
-Rendering and editor behavior are based on the author's PC 0.0.5 release. Quest uses native C++ and Quest UI instead of the PC runtime. Legacy plain-text PC presets are not supported; use JSON or `.vainsaber`. Visual parity and performance depend on the headset and need testing in-game.
+## 🛠️ Create & share
 
-See [Patch notes](PATCH_NOTES.md) for changes.
+**Create new preset** creates an empty JSON preset and selects it under Gameplay Saber. Press **Edit**, then **+** to add your first part.
 
-## Building
+| Control | Action |
+| :--- | :--- |
+| **Tap a number** | Open the numeric keypad |
+| **Hold a number + turn the controller horizontally** | Adjust its value |
+| **Texture → …** | Edit atlas columns, rows, speed and direction |
+| **Save** | Save the editable JSON preset with a backup |
+| **Export** | Write a .vainsaber with embedded resources into /sdcard/VainSabers |
+| **Hold Sabers** | Switch between held and static previews |
 
-Requirements: QPM, CMake 3.22+, Ninja, Android NDK r27 and PowerShell 7.
+After a successful export, the button shows **Exported &lt;preset&gt;.vainsaber**. Export does not generate a PNG. **.vainsaber files are read-only** in the editor; use JSON for presets you want to keep editing. Duplicating a part preserves its name, for example **handle → handle Copy**.
+
+## 💡 Add bloom
+
+Install [**QuestBloom**](https://github.com/asdodod/QuestBloom) separately for configurable whole-game bloom and compatibility with VainSabers glow materials.
+
+## ℹ️ PC compatibility
+
+This port is based on the author's **PC 0.0.5** release and uses native C++ with Quest UI. Rendering and some editor behavior still differ from PC; this is not a complete 1:1 reproduction. Legacy plain-text presets are not supported — use JSON or .vainsaber.
+
+**0.0.5** is the VainSabers version; **Quest port version 07** identifies this port update. Source changes may be newer than the latest published build.
+
+## 🔧 Build from source
+
+Requirements: **QPM**, **CMake 3.22+**, **Ninja**, **Android NDK r27** and **PowerShell 7**.
 
 ```powershell
 qpm restore
@@ -52,16 +87,27 @@ pwsh ./scripts/build.ps1
 pwsh ./scripts/createqmod.ps1
 ```
 
-The library is built into `build/libvainsabers.so`; the QMOD is created at the repository root. Dependencies are pinned in `qpm.shared.json`.
+Output: **build/libvainsabers.so** and **VainSabers.qmod**. Dependencies are pinned in qpm.shared.json.
 
-### Changing the AssetBundle
+<details>
+<summary><strong>🎮 Rebuild the Unity AssetBundle</strong></summary>
 
-The `unity` folder targets **Unity 2021.3.16f1** with Android Build Support. After changing shaders or assets, run **`scripts/BuildAssetBundlesQuest.bat`**; set `UNITY_PATH` if necessary. The BAT copies the Android bundle into `assets/vs_assets`. Rebuild the native library afterwards.
+The **unity** project requires **Unity 2021.3.16f1** with **Android Build Support**. After editing shaders or assets, run **scripts/BuildAssetBundlesQuest.bat**; set **UNITY_PATH** if needed. The BAT copies the Android bundle into **assets/vs_assets**. Rebuild the native library afterwards.
 
-## Credits
+</details>
 
-- **Vainstains:** original VainSabers, shaders, assets, presets and PC UI.
-- QuestPackageManager, beatsaber-hook, custom-types, bs-cordl, Scotland2 and Quest-BSML contributors: Quest tooling and UI.
-- Lauriethefish, danrouse and Bobby Shmurner: Quest mod template.
+## ❤️ Credits
+
+- **Vainstains** — original VainSabers, shaders, assets, presets and PC UI.
+- **QuestPackageManager, beatsaber-hook, custom-types, bs-cordl, Scotland2 and Quest-BSML contributors** — Quest tooling and UI.
+- **Lauriethefish, danrouse and Bobby Shmurner** — Quest mod template.
 
 The original mod and assets retain their authorship and licensing.
+
+---
+
+<div align="center">
+
+**[Download](https://github.com/asdodod/vsq-port/releases/latest) · [Patch notes](PATCH_NOTES.md) · [Report a bug](https://github.com/asdodod/vsq-port/issues)**
+
+</div>

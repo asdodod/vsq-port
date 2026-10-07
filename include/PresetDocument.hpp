@@ -184,12 +184,15 @@ struct PresetDocument {
     }
     void AddPart(bool copy = false) {
         rapidjson::Value value(rapidjson::kObjectType);
-        if (copy && Part())
+        copy = copy && Part();
+        std::string newName = copy ? Text(*Part(), "name", "Part") + " Copy"
+                                   : "Part " + std::to_string(Parts().Size() + 1);
+        if (copy)
             value.CopyFrom(*Part(), json.GetAllocator());
         Parts().PushBack(value, json.GetAllocator());
         part = Parts().Size() - 1;
         auto &p = *Part();
-        SetText(p, "name", copy ? "Part Copy" : "Part " + std::to_string(part + 1));
+        SetText(p, "name", newName);
         if (!copy) {
             // Match BlurSaberData.AddComponent in the PC 0.0.5 release.
             SetNumber(p, "length", .1f);

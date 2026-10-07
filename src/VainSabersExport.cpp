@@ -1,130 +1,121 @@
 #include "VainSabersUI.hpp"
 #include "PresetExport.hpp"
+#include "PresetFilePolicy.hpp"
 #include "PresetLoader.hpp"
 #include "PluginConfig.hpp"
-#include "BlurSaberPart.hpp"
-#include "VainSabersAssets.hpp"
-#include "UnityEngine/Camera.hpp"
-#include "UnityEngine/CameraClearFlags.hpp"
-#include "UnityEngine/StereoTargetEyeMask.hpp"
-#include "UnityEngine/RenderTexture.hpp"
-#include "UnityEngine/RenderTextureFormat.hpp"
-#include "UnityEngine/TextureFormat.hpp"
-#include "UnityEngine/ImageConversion.hpp"
-#include "UnityEngine/Rect.hpp"
 
 namespace VainSabers {
 namespace {
-// Dedicated camera and temporary sabers: no menus or headset screenshots in exports.
-void Thumbnail(const Preset &preset, const std::filesystem::path &path) {
-    using namespace UnityEngine;
-    if (!Assets::IsLoaded() && !Assets::LoadAssets())
-        throw std::runtime_error("Saber assets could not be loaded");
-    auto root = GameObject::New_ctor("VainSabers export preview");
-    root->set_layer(30);
-    root->get_transform()->set_position({1000, 1000, 1000});
-    auto cameraGo = GameObject::New_ctor("VainSabers export camera");
-    auto cam = cameraGo->AddComponent<Camera *>();
-    cam->set_enabled(false);
-    auto target = RenderTexture::New_ctor(512, 512, 24, RenderTextureFormat::ARGB32);
-    auto tex = Texture2D::New_ctor(512, 512, TextureFormat::RGB24, false);
-    auto previous = RenderTexture::get_active();
-    auto cleanup = [&] {
-        RenderTexture::set_active(previous);
-        cam->set_targetTexture(nullptr);
-        target->Release();
-        root->SetActive(false);
-        Object::Destroy(root);
-        Object::Destroy(cameraGo);
-        Object::Destroy(target);
-        Object::Destroy(tex);
-    };
-    try {
-        float extent = 1;
-        for (auto &part : preset.parts)
-            extent = std::max(extent, std::abs(part.length) + std::abs(part.position.z) + std::abs(part.position.x) +
-                                          std::abs(part.position.y));
-        for (int side = 0; side < 2; ++side) {
-            auto anchor = GameObject::New_ctor("Preview saber");
-            anchor->set_layer(30);
-            anchor->get_transform()->SetParent(root->get_transform(), false);
-            anchor->get_transform()->set_localPosition({(side == 0 ? -.17f : .17f) * extent, 0, 0});
-            auto tracker = anchor->AddComponent<MovementTracker *>();
-            tracker->Init(anchor->get_transform());
-            for (const auto &data : preset.parts) {
-                if (data.side == SaberSide::LeftOnly && side != 0)
-                    continue;
-                if (data.side == SaberSide::RightOnly && side != 1)
-                    continue;
-                auto partGo = GameObject::New_ctor(StringW(data.name));
-                partGo->set_layer(30);
-                partGo->get_transform()->SetParent(anchor->get_transform(), false);
-                auto part = partGo->AddComponent<BlurSaberPart *>();
-                part->Init(tracker);
-                part->ApplyPartData(data, side == 0);
-                part->SetColor(side == 0 ? Color{.8f, .12f, .15f, 1} : Color{.15f, .55f, .9f, 1});
-                part->ApplyMaterialProps();
-            }
-        }
-        cam->set_stereoTargetEye(StereoTargetEyeMask::None);
-        cam->set_cullingMask(1 << 30);
-        cam->set_orthographic(true);
-        cam->set_orthographicSize(extent * .8f);
-        cam->set_nearClipPlane(.01f);
-        cam->set_farClipPlane(20 * extent);
-        cam->set_clearFlags(CameraClearFlags::SolidColor);
-        cam->set_backgroundColor({.022f, .028f, .045f, 1});
-        cam->get_transform()->set_position({1000, 1000 - 3 * extent, 1000 + extent * .35f});
-        cam->get_transform()->LookAt(Vector3{1000, 1000, 1000 + extent * .35f}, Vector3{0, 0, 1});
-        cam->set_targetTexture(target);
-        cam->Render();
-        RenderTexture::set_active(target);
-        tex->ReadPixels(Rect{0, 0, 512, 512}, 0, 0);
-        tex->Apply();
-        auto bytes = ImageConversion::EncodeToPNG(tex);
-        if (!bytes || bytes.size() == 0)
-            throw std::runtime_error("PNG encoding failed");
-        WritePresetFile(path, reinterpret_cast<const char *>(bytes.begin()), bytes.size());
-    } catch (...) {
-        cleanup();
-        throw;
+// Notify Android about the finished file so USB/MTP can discover the export.
+// A scan failure must not discard a successfully written preset.
+bool NotifyExport(const std::filesystem::path &path) {
+    if (!modloader_jvm)
+        return false;
+    JNIEnv *env = nullptr;
+    bool attached = false;
+    int state = modloader_jvm->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6);
+    if (state == JNI_EDETACHED) {
+        if (modloader_jvm->AttachCurrentThread(&env, nullptr) != JNI_OK)
+            return false;
+        attached = true;
+    } else if (state != JNI_OK)
+        return false;
+    if (env->PushLocalFrame(16) < 0) {
+        env->ExceptionClear();
+        if (attached)
+            modloader_jvm->DetachCurrentThread();
+        return false;
     }
-    cleanup();
+    auto scan = [&]() -> bool {
+        auto player = env->FindClass("com/unity3d/player/UnityPlayer");
+        if (!player || env->ExceptionCheck())
+            return false;
+        auto activityField = env->GetStaticFieldID(player, "currentActivity", "Landroid/app/Activity;");
+        if (!activityField || env->ExceptionCheck())
+            return false;
+        auto activity = env->GetStaticObjectField(player, activityField);
+        if (!activity || env->ExceptionCheck())
+            return false;
+        auto scanner = env->FindClass("android/media/MediaScannerConnection");
+        if (!scanner || env->ExceptionCheck())
+            return false;
+        auto method = env->GetStaticMethodID(scanner, "scanFile",
+            "(Landroid/content/Context;[Ljava/lang/String;[Ljava/lang/String;Landroid/media/MediaScannerConnection$OnScanCompletedListener;)V");
+        if (!method || env->ExceptionCheck())
+            return false;
+        auto stringClass = env->FindClass("java/lang/String");
+        if (!stringClass || env->ExceptionCheck())
+            return false;
+        auto paths = env->NewObjectArray(1, stringClass, nullptr);
+        if (!paths || env->ExceptionCheck())
+            return false;
+        auto mimeTypes = env->NewObjectArray(1, stringClass, nullptr);
+        if (!mimeTypes || env->ExceptionCheck())
+            return false;
+        auto filename = il2cpp_utils::newcsstr(path.string());
+        auto javaPath = env->NewString(reinterpret_cast<const jchar *>(filename->chars), filename->length);
+        if (!javaPath || env->ExceptionCheck())
+            return false;
+        auto mime = env->NewStringUTF("application/octet-stream");
+        if (!mime || env->ExceptionCheck())
+            return false;
+        env->SetObjectArrayElement(paths, 0, javaPath);
+        if (env->ExceptionCheck())
+            return false;
+        env->SetObjectArrayElement(mimeTypes, 0, mime);
+        if (env->ExceptionCheck())
+            return false;
+        env->CallStaticVoidMethod(scanner, method, activity, paths, mimeTypes, nullptr);
+        return !env->ExceptionCheck();
+    };
+    bool requested = scan();
+    if (env->ExceptionCheck())
+        env->ExceptionClear();
+    env->PopLocalFrame(nullptr);
+    if (attached)
+        modloader_jvm->DetachCurrentThread();
+    return requested;
 }
-std::string ExportOne(std::string name, std::string source) {
+std::string ExportOne(const std::string &name, const std::string &source) {
     if (!ValidPresetName(name))
         throw std::runtime_error("Invalid preset filename");
-    PresetDocument d;
-    if (!d.Parse(source))
+    PresetDocument document;
+    if (!document.Parse(source))
         throw std::runtime_error(name + ": unsupported preset JSON");
-    EmbedPresetAssets(d, d.json, PluginConfig::GetPresetDirectory());
-    const std::filesystem::path dir = PluginConfig::GetPresetDirectory();
-    std::error_code ec;
-    std::filesystem::create_directories(dir, ec);
-    if (ec)
-        throw std::runtime_error("Cannot access /sdcard/VainSabers: " + ec.message());
-    auto content = d.Serialize();
-    WritePresetFile(dir / (name + ".vainsaber"), content.data(), content.size());
+    const std::filesystem::path directory = PluginConfig::GetPresetDirectory();
+    EmbedPresetAssets(document, document.json, directory);
+    std::error_code error;
+    std::filesystem::create_directories(directory, error);
+    if (error)
+        throw std::runtime_error("Cannot access /sdcard/VainSabers: " + error.message());
+    auto content = document.Serialize();
     Preset preset;
     if (!PresetLoader::LoadFromJsonString(content, preset))
         throw std::runtime_error("Exported preset cannot be parsed");
-    try {
-        Thumbnail(preset, dir / (name + ".png"));
-    } catch (const std::exception &e) {
-        return "Exported " + name + ".vainsaber; PNG failed: " + e.what();
-    }
-    return "Exported " + name + ".vainsaber (+ PNG) to /sdcard/VainSabers";
+    const auto path = directory / (name + ".vainsaber");
+    WritePresetFile(path, content.data(), content.size());
+    std::ifstream file(path, std::ios::binary);
+    std::string saved{std::istreambuf_iterator<char>(file), {}};
+    if (saved != content)
+        throw std::runtime_error("Cannot verify " + path.filename().string());
+    VS_LOG("Exported preset with embedded assets: %s (%zu bytes)", path.c_str(), content.size());
+    if (!NotifyExport(path))
+        VS_LOG("Export saved, but Android file scan could not be requested: %s", path.c_str());
+    return "Exported " + path.filename().string();
 }
 } // namespace
 void VainSabersMenuHost::ExportPreset() {
-    auto s = State();
-    if (!s->editing)
+    auto state = State();
+    if (!state->editing || IsVainSaberExport(state->document.path.c_str()))
         return;
     try {
-        s->status = ExportOne(s->saveAs, s->document.Serialize());
-    } catch (const std::exception &e) {
-        s->status = "Export failed: " + std::string(e.what());
-        VS_LOG("Preset export failed: %s", e.what());
+        // Like PC, export the open preset's saved name, not an unconfirmed rename.
+        state->exportConfirmation = ExportOne(state->document.name, state->document.Serialize());
+        state->status.clear();
+    } catch (const std::exception &error) {
+        state->exportConfirmation = "Export failed";
+        state->status = "Export failed: " + std::string(error.what());
+        VS_LOG("%s", state->status.c_str());
     }
     BuildEditor();
 }

@@ -2,6 +2,7 @@
 #include "PcUI.hpp"
 #include "PcHomeMarkup.hpp"
 #include "PluginConfig.hpp"
+#include "PresetFilePolicy.hpp"
 #include "PresetLoader.hpp"
 #include "MenuSabers.hpp"
 #include <filesystem>
@@ -108,6 +109,7 @@ void VainSabersMenuHost::set_SelectedPreset(StringW value) {
     }
     GetPluginConfig().currentSaber = name;
     GetPluginConfig().Save();
+    UpdateEditorButtons();
     MenuSabers::Refresh();
 }
 void VainSabersMenuHost::set_SelectedMenuPreset(StringW value) {
@@ -124,6 +126,7 @@ void VainSabersMenuHost::set_SelectedMenuPreset(StringW value) {
     }
     GetPluginConfig().menuSaberPreset = name;
     GetPluginConfig().Save();
+    UpdateEditorButtons();
     MenuSabers::Refresh();
 }
 ListW<System::Object *> VainSabersMenuHost::get_PresetNames() {
@@ -140,6 +143,15 @@ ListW<System::Object *> VainSabersMenuHost::get_menuModeChoices() {
 }
 void VainSabersMenuHost::EditSaberPreset() {
     OpenEditor(GetPluginConfig().currentSaber);
+}
+void VainSabersMenuHost::UpdateEditorButtons() {
+    auto editable = [](const std::string &name) {
+        return !name.empty() && !IsVainSaberExport(PluginConfig::GetPresetFilePath(name).c_str());
+    };
+    if (EditSaberButton)
+        EditSaberButton->set_interactable(editable(GetPluginConfig().currentSaber));
+    if (EditMenuButton)
+        EditMenuButton->set_interactable(editable(GetPluginConfig().menuSaberPreset));
 }
 void VainSabersMenuHost::EditMenuPreset() {
     OpenEditor(GetPluginConfig().menuSaberPreset);
@@ -174,10 +186,7 @@ void VainSabersMenuHost::UpdatePresetDropdown() {
     _syncingHome = false;
     if (MenuPresetContainer)
         MenuPresetContainer->get_gameObject()->SetActive(c.menuMode == 2);
-    if (EditSaberButton)
-        EditSaberButton->set_interactable(!names.empty());
-    if (EditMenuButton)
-        EditMenuButton->set_interactable(!names.empty());
+    UpdateEditorButtons();
     if (root)
         UnityEngine::UI::LayoutRebuilder::ForceRebuildLayoutImmediate(
             root->GetComponent<UnityEngine::RectTransform *>());
@@ -276,13 +285,21 @@ void VainSabersMenuHost::OpenSettings() {
     if (c.pointerMode == 1) {
         auto row = form.Row();
         auto names = GetMenuPresetNames();
-        PCUI::Dropdown(PCUI::Box(row, 0, 0, 85, 4), "Dot Preset", c.menuPointerDotPreset, names, [](std::string v) {
+        auto editText = PCUI::Button(PCUI::Box(row, 87, 0, 21, 4), "Edit",
+                     [this] { OpenEditor(GetPluginConfig().menuPointerDotPreset); });
+        auto editButton = editText->GetComponentInParent<UnityEngine::UI::Button *>();
+        auto updateEdit = [editButton](const std::string &name) {
+            if (editButton)
+                editButton->set_interactable(!name.empty() &&
+                    !IsVainSaberExport(PluginConfig::GetPresetFilePath(name).c_str()));
+        };
+        updateEdit(c.menuPointerDotPreset);
+        PCUI::Dropdown(PCUI::Box(row, 0, 0, 85, 4), "Dot Preset", c.menuPointerDotPreset, names, [updateEdit](std::string v) {
             GetPluginConfig().menuPointerDotPreset = v;
             GetPluginConfig().Save();
             MenuSabers::RefreshPointers();
+            updateEdit(v);
         });
-        PCUI::Button(PCUI::Box(row, 87, 0, 21, 4), "Edit",
-                     [this] { OpenEditor(GetPluginConfig().menuPointerDotPreset); });
     }
     PCUI::FitForm(form, 81);
     auto close = PCUI::Box(body, 0, 82, 108, 4);
