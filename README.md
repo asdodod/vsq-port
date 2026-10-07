@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/banner.svg" alt="VainSabers Quest — create your own sabers" width="100%" />
+<h1>⚔️ VainSabers Quest</h1>
 
 **Custom sabers. Motion blur. Your own style.**
 
