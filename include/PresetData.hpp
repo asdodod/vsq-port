@@ -39,6 +39,11 @@ struct PartData {
     bool doubleSided = false;
     std::string colorTexture, glowTexture, colorTextureBase64, glowTextureBase64, objFile, objBase64;
     int textureWrap = 0;
+    UnityEngine::Vector2 colorAtlasCount{1, 1}, glowAtlasCount{1, 1};
+    UnityEngine::Vector3 colorAtlasSpeedFlip{1, 0, 0}, glowAtlasSpeedFlip{1, 0, 0};
+    UnityEngine::Vector3 lookDir{0, 0, 0};
+    bool useLookDir = false;
+    bool disableGlowPass = false;
     struct Animator {
         std::string type;
         float speed = .5f, amplitude = .5f, frequency = .5f;

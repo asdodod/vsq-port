@@ -1,26 +1,49 @@
 # VainSabers Quest
 
-Quest port of [VainSabers by Vainstains](https://github.com/Vainstains/VainSabers).
-Target: **Beat Saber 1.40.8_7379**, **Scotland2**, ARM64.
-Version: **0.0.5 beta**, Quest revision 9.
+**THIS MOD WAS CREATED WITH AI.** AI was used to create and modify this Quest port.
 
-# THIS MOD WAS CREATED WITH AI. Because VainStains doesn't wanna do port i had to use AI to create it for quest users. 
+Quest port of [VainSabers by Vainstains](https://github.com/Vainstains/VainSabers): customizable sabers, motion blur, blade and tip trails, and an in-game preset editor.
 
-## Installation and presets
+Target: **Beat Saber 1.40.8_7379**, ARM64, **Scotland2**. Source version: **0.0.7**.
 
-Install the release QMOD through your Quest mod manager. Open **Mods → VainSabers** in the gameplay setup menu.
+## Installation
 
-Presets live in **`/sdcard/VainSabers`**, beside Download, Movies and Pictures in the headset's internal storage. Import `.json` or `.vainsaber` there, then press **Refresh presets**.
+Install the QMOD with your Quest mod manager, such as ModsBeforeFriday, and restart Beat Saber. Open **Mods → VainSabers** in the gameplay setup menu. Enable VainSabers and choose a Gameplay Saber preset.
 
-**Create new preset** saves an empty `NewPreset.json` and selects it under **Gameplay Saber**. Existing names get a numeric suffix. Press **Edit** to add parts. **Save** writes JSON with a backup; **Export** writes a `.vainsaber` with embedded resources and a PNG.
+The source version may be newer than the latest published release. Download published builds from [Releases](https://github.com/asdodod/vsq-port/releases).
 
-Tap a number to open its keypad. Hold and turn the controller horizontally to adjust it; releasing after a drag does not open the keypad.
+## Installing presets
 
-## Build
+Presets belong in **`/sdcard/VainSabers`**: the `VainSabers` folder in the headset's internal-storage root, beside Download, Movies and Pictures.
 
-Required: QPM, CMake 3.22+, Ninja, Android NDK r27 and PowerShell 7 for the scripts. The dependency snapshot is included in `qpm.shared.json`; the game headers are pinned to `bs-cordl 4008.0.0`.
+Copy `.json` or `.vainsaber` files there and press **Refresh presets**. External `.obj` models and `.png`, `.jpg` or `.jpeg` textures go in the same folder. Exported `.vainsaber` files can contain their resources.
 
-From this directory:
+Select a preset under **Gameplay Saber**. **Menu Display** controls menu sabers; a separate menu preset can be selected when using that mode.
+
+## Preset editor
+
+**Create new preset** creates an empty preset and selects it under Gameplay Saber. Press **Edit**, then **+** to add a part.
+
+- **Part:** position, rotation, linking, side, mirroring and animators.
+- **Geometry:** Simple tubes, Advanced rings, sprites or OBJ models.
+- **Material:** textures, angle gradients, lit shading, blur and rendering options.
+- **Trails:** custom tip/blade trails, gradients and motion controls. Blade trails also support textures, animated atlases and noise.
+
+Tap a number for direct keypad entry. Hold it and turn the controller horizontally to change its value. For textures, select a file and use **…** to edit atlas columns, rows, speed and direction.
+
+**Save** writes JSON with a backup. **Export** writes a `.vainsaber` with embedded resources and a PNG into `/sdcard/VainSabers`, ready to share. **Hold Sabers** switches between controller and static previews.
+
+## Bloom and PC compatibility
+
+Bloom is available separately through [QuestBloom](https://github.com/asdodod/QuestBloom). It is not bundled with VainSabers.
+
+Rendering and editor behavior are based on the author's PC 0.0.5 release. Quest uses native C++ and Quest UI instead of the PC runtime. Legacy plain-text PC presets are not supported; use JSON or `.vainsaber`. Visual parity and performance depend on the headset and need testing in-game.
+
+See [Patch notes](PATCH_NOTES.md) for changes.
+
+## Building
+
+Requirements: QPM, CMake 3.22+, Ninja, Android NDK r27 and PowerShell 7.
 
 ```powershell
 qpm restore
@@ -29,39 +52,16 @@ pwsh ./scripts/build.ps1
 pwsh ./scripts/createqmod.ps1
 ```
 
-The library is built into `build/libvainsabers.so`; the QMOD is created at the repository root. `assets/vs_assets` is the Android bundle used by the native build. CMake generates its embedded C++ byte array automatically inside `build`, so generated source is not checked in.
+The library is built into `build/libvainsabers.so`; the QMOD is created at the repository root. Dependencies are pinned in `qpm.shared.json`.
 
-## AssetBundle
+### Changing the AssetBundle
 
-The `unity` folder contains the asset project for **Unity 2021.3.16f1** with Android Build Support. Run `scripts/BuildAssetBundlesQuest.bat` after changing shaders or assets; set `UNITY_PATH` if Unity is installed elsewhere. The BAT builds GLES3/Vulkan assets, checks the result and copies the bundle to `assets/vs_assets`. Rebuild the native library afterwards.
-
-## Source layout
-
-- `src`, `include`: native mod, rendering, presets and Quest UI.
-- `tests`: compile-time regressions for motion history, number gestures and trail activation.
-- `unity`: source shaders, bundle assets and local Unity regression checks.
-- `cmake`, `scripts`: native build, asset embedding and packaging.
-
-Original PC rendering and UI references come from VainSabers master commit `6f85587582b437435f5e48973ee10bd0dde4cb7f` and the author's `0.0.5-bs1.40.8-34ce50e` release. PC DLLs and decompilation output are not included here.
-
-## Validation and limits
-
-Revision 9 aligns new-part defaults with PC: Length 0.100, Start/End Radius 0.030 and Blur Fade 1.000.
-
-Revision 8 generates real ribbon vertices instead of depending on GPU history arrays, follows the gameplay color manager and PC menu override colors, and retains empty editor panels without an added hint. Revision 7 fixed keypad routing and empty-preset creation.
-
-Local checks cover ARM64 compilation, entry-point exports, the embedded bundle, number gestures and trail motion at 60–120 Hz, keypad event routing and ribbon rendering in Unity/OpenGL. They do not establish headset performance or full visual parity with PC. Revision 9 changes new-part defaults only; this latest build still needs a Quest test.
-
-Texture atlases, noise and some additional PC trail effects are not fully ported. Some gradient/animator controls are adapted for Quest. Bloom is not part of this mod.
+The `unity` folder targets **Unity 2021.3.16f1** with Android Build Support. After changing shaders or assets, run **`scripts/BuildAssetBundlesQuest.bat`**; set `UNITY_PATH` if necessary. The BAT copies the Android bundle into `assets/vs_assets`. Rebuild the native library afterwards.
 
 ## Credits
 
-- Vainstains: original VainSabers, shaders, assets, presets and PC UI.
-- QuestPackageManager, Sc2ad, zoller27osu and jakibaki: beatsaber-hook and Quest tooling.
-- Quest-BSML contributors: BSML UI.
-- Il2CppQuestTypePatching contributors: custom-types.
+- **Vainstains:** original VainSabers, shaders, assets, presets and PC UI.
+- QuestPackageManager, beatsaber-hook, custom-types, bs-cordl, Scotland2 and Quest-BSML contributors: Quest tooling and UI.
 - Lauriethefish, danrouse and Bobby Shmurner: Quest mod template.
 
-Dependency source and license information is maintained in the linked upstream projects. This port does not replace the ownership or licensing of the original mod and assets.
-
-
+The original mod and assets retain their authorship and licensing.

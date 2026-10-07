@@ -6,6 +6,7 @@
 #include "PresetGeometry.hpp"
 #include "UnityEngine/ImageConversion.hpp"
 #include "UnityEngine/Time.hpp"
+#include "UnityEngine/Quaternion.hpp"
 #include "UnityEngine/Bounds.hpp"
 #include "UnityEngine/GameObject.hpp"
 #include "UnityEngine/Transform.hpp"
@@ -315,6 +316,9 @@ void BlurSaberPart::ApplyPartData(const VainSabers::PartData &data, bool isLeft)
             _material->EnableKeyword("_GEOMETRY_OBJ");
         // Quest has no PC alpha-channel bloom compositor. Do not overwrite its alpha.
         _material->EnableKeyword(StringW("_DISABLE_GLOW_PASS"));
+        // QuestBloom opts into runtime instances. An explicitly disabled part
+        // opts out while retaining the Quest fallback when bloom is absent.
+        _material->set_name(data.disableGlowPass ? "Saber (Glow disabled)" : "Saber (Instance)");
         if (data.disableDepthPrepass)
             _material->EnableKeyword(StringW("_DISABLE_DEPTH_PREPASS"));
         else
@@ -388,7 +392,7 @@ void BlurSaberPart::RebuildMesh() {
 
     if (d->geometryMode == GeometryType::Sprite || d->geometryMode == GeometryType::Obj) {
         _mesh = MakePresetGeometry(d->materialData);
-    } else if (d->geometryMode == GeometryType::Advanced && d->rings.size() >= 2) {
+    } else if (d->geometryMode == GeometryType::Advanced) {
         _mesh = BlurTube::BuildAdvancedBladeTube(d->ringVerts, d->length, d->rings);
     } else {
         _mesh = BlurTube::BuildSimpleBladeTube(d->ringVerts, d->length, d->startRadius, d->endRadius, d->startColor,
@@ -525,6 +529,11 @@ void BlurSaberPart::ApplyMaterialProps() {
     rot.z += config.zRotationOffset;
     get_transform()->set_localPosition(pos);
     get_transform()->set_localEulerAngles(rot);
+    if (d->materialData.useLookDir &&
+        d->materialData.lookDir.x * d->materialData.lookDir.x +
+        d->materialData.lookDir.y * d->materialData.lookDir.y +
+        d->materialData.lookDir.z * d->materialData.lookDir.z > .000001f)
+        get_transform()->set_localRotation(UnityEngine::Quaternion::LookRotation(d->materialData.lookDir));
 
     SampleGpuHistory();
     m_propertyBlock->SetFloat(props._VertexEnabled, 1.0f);
@@ -541,6 +550,13 @@ void BlurSaberPart::ApplyMaterialProps() {
     m_propertyBlock->SetFloat(props._VertexLength, d->length);
     m_propertyBlock->SetFloat(props._VertexGeometry, 0.0f);
     auto id = [](const char *name) { return UnityEngine::Shader::PropertyToID(StringW(name)); };
+    const auto &materialData = d->materialData;
+    m_propertyBlock->SetVector(id("_ColorTexAtlasCount"), {materialData.colorAtlasCount.x, materialData.colorAtlasCount.y, 0, 0});
+    m_propertyBlock->SetVector(id("_GlowTexAtlasCount"), {materialData.glowAtlasCount.x, materialData.glowAtlasCount.y, 0, 0});
+    m_propertyBlock->SetVector(id("_ColorTexAtlasSpeedFlip"), {materialData.colorAtlasSpeedFlip.x, materialData.colorAtlasSpeedFlip.y, materialData.colorAtlasSpeedFlip.z, 0});
+    m_propertyBlock->SetVector(id("_GlowTexAtlasSpeedFlip"), {materialData.glowAtlasSpeedFlip.x, materialData.glowAtlasSpeedFlip.y, materialData.glowAtlasSpeedFlip.z, 0});
+    if (d->lit && _material)
+        _material->SetColor(id("_RimColor"), UnityEngine::Color::Lerp(materialData.rimColor, _customColor, materialData.fresnelCustomBlend));
     m_propertyBlock->SetVector(id("_VertexSpriteSize"),
                                {d->materialData.spriteSizeX, d->materialData.spriteSizeY, 0, 0});
     m_propertyBlock->SetFloat(id("_VertexObjScale"), d->materialData.objScale);

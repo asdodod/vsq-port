@@ -227,6 +227,10 @@ void VainSabersMenuHost::BuildEditor() {
         f.Dropdown(label, choices[index], choices, [this, ptr, field, choices, rebuild](std::string value) {
             auto idx = std::find(choices.begin(), choices.end(), value) - choices.begin();
             State()->document.SetNumber(*ptr, field.c_str(), idx, true);
+            if (field == "geometryMode" && idx == 1) {
+                State()->document.EnsureAdvancedRings(*ptr);
+                State()->ring = 0;
+            }
             Preview();
             if (rebuild)
                 BuildEditor();
@@ -255,14 +259,26 @@ void VainSabersMenuHost::BuildEditor() {
     });
     flag(pf, *p, "mirrorOnLeft", "Mirror");
     pf.Header("Position");
-    vec(pf, *p, "position", "XYZ", 0, -1, 1, .00025f, 4);
+    vec(pf, *p, "position", "XYZ", 0, -1, 1, .00025f, 3);
     pf.Header("Rotation");
     vec(pf, *p, "rotation", "XYZ", 0, -180, 180, 1, 0);
     auto source = p;
-    if (linked >= 0 && linked < d.Parts().Size() && linked != d.part)
-        source = &d.Parts()[linked];
+    std::vector<bool> seen(d.Parts().Size());
+    size_t sourceIndex = d.part;
+    while (true) {
+        seen[sourceIndex] = true;
+        int next = PresetDocument::Number(*source, "linkedPartIndex", -1);
+        if (next < 0 || next >= d.Parts().Size())
+            break;
+        if (seen[next]) {
+            source = p;
+            break;
+        }
+        sourceIndex = next;
+        source = &d.Parts()[sourceIndex];
+    }
     pf.Header("Geometry");
-    num(pf, *source, "length", "Length", 1, .001f, 1, .001f, 3);
+    num(pf, *source, "length", "Length", .1f, .001f, 1, .001f, 3);
     pf.Header("Animators");
     BuildAnimators(pf, *p, d, [this] { Preview(); }, [this] { BuildEditor(); });
     int geometry =
@@ -286,11 +302,11 @@ void VainSabersMenuHost::BuildEditor() {
         num(gf, *source, "endCapExtension", "End Cap Extension", .25f, 0, 3, .01f, 2);
         flag(gf, *source, "enableRoundedNormals", "Rounded Normals", true);
     } else if (geometry == 1) {
+        d.EnsureAdvancedRings(*source);
         auto &rings = d.Ensure(*source, "rings");
         if (!rings.IsArray())
             rings.SetArray();
         auto rlist = &rings;
-        gf.Header("Rings");
         row = gf.Row();
         size_t count = rings.Size();
         if (count)
@@ -308,7 +324,7 @@ void VainSabersMenuHost::BuildEditor() {
         });
         Button(Box(row, w - 19, 0, 8, 4), "-",
                [this, rlist] {
-                   if (rlist->Size())
+                   if (rlist->Size() > 1)
                        rlist->Erase(rlist->Begin() + State()->ring);
                    State()->document.dirty = true;
                    BuildEditor();
@@ -325,45 +341,57 @@ void VainSabersMenuHost::BuildEditor() {
                        d.SetNumber(ring, "radius", .015f);
                        d.SetNumber(ring, "position", 0);
                    }
-                   rlist->PushBack(ring, d.json.GetAllocator());
-                   State()->ring = rlist->Size() - 1;
+                   d.SetNumber(ring, "position", std::clamp(PresetDocument::Number(ring, "position", 0) + .1f, 0.f, 1.f));
+                   size_t insertion = std::min(State()->ring + 1, static_cast<size_t>(rlist->Size()));
+                   rlist->PushBack(J(), d.json.GetAllocator());
+                   for (size_t i = rlist->Size() - 1; i > insertion; --i)
+                       (*rlist)[i].Swap((*rlist)[i - 1]);
+                   (*rlist)[insertion].Swap(ring);
+                   State()->ring = insertion;
                    BuildEditor();
                    Preview();
                },
                {.15f, .6f, .25f, 1});
         if (count) {
             auto &r = rings[s->ring];
-            num(gf, r, "position", "Position", 0, 0, 1, .001f, 3);
-            num(gf, r, "radius", "Radius", .015f, .0001f, .1f, .0001f, 3);
+            gf.Space(1);
+            gf.Header("Ring Properties");
+            num(gf, r, "position", "Position", 0, -1, 2, .001f, 3);
+            num(gf, r, "radius", "Radius", .03f, .0001f, .05f, .0001f, 3);
             flag(gf, r, "inverted", "Inverted");
-            num(gf, r, "offsetX", "Offset X", 0, -.1f, .1f, .001f, 3);
-            num(gf, r, "offsetY", "Offset Y", 0, -.1f, .1f, .001f, 3);
-            vec(gf, r, "color", "RGB", 1, -1, 1, .005f, 3);
-            num(gf, r, "customWeight", "Custom Weight", 1, 0, 1, .005f, 3);
+            gf.Header("Offset");
+            num(gf, r, "offsetY", "Up", 0, -.1f, .1f, .001f, 3);
+            num(gf, r, "offsetX", "Right", 0, -.1f, .1f, .001f, 3);
+            num(gf, r, "uvOffset", "UV Offset", 0, -1, 1, .01f, 2);
             num(gf, r, "glow", "Glow", 1, 0, 1.5f, .005f, 3);
             num(gf, r, "opacity", "Opacity", 1, 0, 1, .01f, 2);
-            num(gf, r, "uvOffset", "UV Offset", 0, -1, 1, .01f, 2);
+            gf.Space(2);
+            vec(gf, r, "color", "RGB", 1, -1, 1, .005f, 3);
+            num(gf, r, "customWeight", "Custom Weight", 1, 0, 1, .005f, 3);
         }
     } else if (geometry == 2) {
         gf.Header("Sprite Size");
-        num(gf, *source, "spriteSizeX", "Width (X)", .025f, .001f, .5f, .001f, 3);
-        num(gf, *source, "spriteSizeY", "Height (Y)", .025f, .001f, .5f, .001f, 3);
+        num(gf, *source, "spriteSizeX", "Width (X)", .2f, .001f, .5f, .001f, 3);
+        num(gf, *source, "spriteSizeY", "Height (Y)", .2f, .001f, .5f, .001f, 3);
         gf.Header("Subdivisions");
-        num(gf, *source, "spriteDivisionsX", "Divisions X", 4, 1, 20, 1, 0);
-        num(gf, *source, "spriteDivisionsY", "Divisions Y", 4, 1, 20, 1, 0);
-        flag(gf, *source, "doubleSided", "Double Sided", true);
+        num(gf, *source, "spriteDivisionsX", "Divisions X", 1, 1, 20, 1, 0);
+        num(gf, *source, "spriteDivisionsY", "Divisions Y", 1, 1, 20, 1, 0);
+        flag(gf, *source, "doubleSided", "Double Sided", false);
         gf.Header("Vertex properties");
         num(gf, *source, "startGlow", "Glow", 1, 0, 1.5f, .005f, 3);
         num(gf, *source, "startOpacity", "Opacity", 1, 0, 1, .01f, 2);
         vec(gf, *source, "startColor", "RGB", 1, -1, 1, .005f, 3);
         num(gf, *source, "startCustomWeight", "Custom Weight", 1, 0, 1, .005f, 3);
     } else {
-        gf.Header("OBJ");
-        Input(gf.Row(), PresetDocument::Text(*source, "objFile", ""), [this, source](std::string v) {
-            State()->document.SetText(*source, "objFile", v);
-            Preview();
-        });
-        num(gf, *source, "objScale", "Scale", 1, .001f, 10, .001f, 3);
+        AssetDropdown(gf.Row(), "Obj File", *source, "objFile", d, false, [this] { Preview(); });
+        gf.Header("Obj Size");
+        num(gf, *source, "objScale", "Scale", 1, .0001f, 1, .001f, 3);
+        gf.Header("Vertex properties");
+        num(gf, *source, "startGlow", "Glow", 1, 0, 1.5f, .005f, 3);
+        num(gf, *source, "startOpacity", "Opacity", 1, 0, 1, .01f, 2);
+        gf.Space(2);
+        vec(gf, *source, "startColor", "RGB", 1, -1, 1, .005f, 3);
+        num(gf, *source, "startCustomWeight", "Custom Weight", 1, 0, 1, .005f, 3);
     }
     if (geometry < 2) {
         gf.Header("Ring Verts");
@@ -380,21 +408,9 @@ void VainSabersMenuHost::BuildEditor() {
     num(mf, *source, "hueShift", "Hue Shift", 0, 0, 1, .01f, 2);
     flag(mf, *source, "lit", "Use Lit Shader", false, true);
     mf.Header("Textures");
-    std::vector<std::string> textures{"None"};
-    std::error_code ec;
-    for (auto it = std::filesystem::directory_iterator(PluginConfig::GetPresetDirectory(), ec);
-         !ec && it != std::filesystem::directory_iterator(); it.increment(ec)) {
-        auto ext = it->path().extension().string();
-        if (ext == ".png" || ext == ".jpg" || ext == ".jpeg")
-            textures.push_back(it->path().filename().string());
-    }
-    for (auto key : {"colorTexture", "glowTexture"})
-        mf.Dropdown(key == std::string("colorTexture") ? "Color / Opacity" : "Glow",
-                    PresetDocument::Text(*source, key, "None"), textures, [this, source, key](std::string v) {
-                        State()->document.SetText(*source, key, v == "None" ? "" : v);
-                        Preview();
-                    });
-    enumField(mf, *source, "textureWrap", "Wrap Mode", {"Repeat", "Clamp", "Mirror"}, 0, false);
+    TextureField(mf.Row(), "Color / Opacity", *source, "color", d, [this] { Preview(); });
+    TextureField(mf.Row(), "Glow", *source, "glow", d, [this] { Preview(); });
+    enumField(mf, *source, "textureWrap", "Wrap Mode", {"Repeat", "Clamp", "Mirror", "MirrorOnce"}, 0, false);
     mf.Header("Angle Mapping");
     for (auto key : {"rimPowerGradient", "glowAddendGradient", "opacityMultiplierGradient"}) {
         std::string label = key == std::string("rimPowerGradient")     ? "Rim"
@@ -492,14 +508,14 @@ void VainSabersMenuHost::BuildEditor() {
                [this, array] {
                    auto &d = State()->document;
                    J t(rapidjson::kObjectType);
-                   if (array->Size())
-                       t.CopyFrom((*array)[State()->trail], d.json.GetAllocator());
-                   else {
-                       d.SetNumber(t, "opacity", .3f);
-                       d.SetNumber(t, "length", 60, true);
-                       d.SetNumber(t, "width", .01f);
-                       d.SetComponent(t, "position", 2, 1);
-                   }
+                   const bool blade = State()->bladeTrails;
+                   d.SetNumber(t, "opacity", blade ? .3f : 1.f);
+                   d.SetNumber(t, "glow", 1);
+                   d.SetNumber(t, "length", blade ? GetPluginConfig().bladeTrailMS : 140, true);
+                   d.SetNumber(t, "width", blade ? .01f : .008f);
+                   d.SetNumber(t, "motionActivation", 0);
+                   d.SetNumber(t, "textureWrap", 1, true);
+                   d.SetComponent(t, "position", 2, 1);
                    array->PushBack(t, d.json.GetAllocator());
                    State()->trail = array->Size() - 1;
                    BuildEditor();
@@ -515,13 +531,27 @@ void VainSabersMenuHost::BuildEditor() {
             tf.Header("Properties");
             num(tf, t, "glow", "Glow", 1, 0, 1.5f, .005f, 3);
             num(tf, t, "opacity", "Opacity", .3f, 0, 1, .01f, 2);
-            num(tf, t, "width", "Width", .01f, .0001f, .2f, .001f, 3);
-            num(tf, t, "length", "Length (ms)", 60, 0, 200, 1, 0);
+            if (!s->bladeTrails)
+                num(tf, t, "width", "Width", .008f, .001f, .05f, .001f, 3);
+            num(tf, t, "length", "Length (ms)", 140, 0, 500, 1, 0);
             num(tf, t, "queueOffset", "Queue Offset", 0, -10, 10, 1, 0);
             num(tf, t, "depthOffset", "Depth Offset", 0, -.02f, .02f, .001f, 3);
-            num(tf, t, "fade", "Fade Strength", 1, 0, 8, .05f, 2);
-            num(tf, t, "motionActivation", "Motion Activation", 1, 0, 5, .05f, 2);
-            num(tf, t, "motionFadePower", "Motion Fade Power", 0, 0, 8, .05f, 2);
+            num(tf, t, "fade", "Fade Strength", 1, 0, 1, .01f, 2);
+            num(tf, t, "motionActivation", "Motion Activation", 1, 0, 1, .01f, 2);
+            if (s->bladeTrails) {
+                num(tf, t, "motionFadePower", "Motion Fade Power", 0, 0, 10, .05f, 2);
+                tf.Header("Noise");
+                flag(tf, t, "noiseEnabled", "Noise", false, true);
+                if (PresetDocument::Flag(t, "noiseEnabled", false)) {
+                    num(tf, t, "noiseIntensity", "Intensity", .02f, 0, 1, .001f, 3);
+                    num(tf, t, "noiseScale", "Scale", 2, 1, 10, .1f, 1);
+                    num(tf, t, "noiseSpeed", "Speed", 1, 0, 10, .05f, 2);
+                }
+                tf.Header("Textures");
+                TextureField(tf.Row(), "Color / Opacity", t, "color", d, [this] { Preview(); });
+                TextureField(tf.Row(), "Glow", t, "glow", d, [this] { Preview(); });
+                enumField(tf, t, "textureWrap", "Wrap Mode", {"Repeat", "Clamp", "Mirror", "MirrorOnce"}, 1, false);
+            }
         }
     }
     FitForm(cf, 26);

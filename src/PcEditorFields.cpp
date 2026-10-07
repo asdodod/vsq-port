@@ -185,10 +185,14 @@ void BuildAnimators(Form &f, rapidjson::Value &part, PresetDocument &doc, std::f
                    };
                    if (name.find("Adder") != std::string::npos)
                        n("speed", name == "HueShiftAdder" ? .5f : 30, name == "HueShiftAdder" ? -3 : -180,
-                         name == "HueShiftAdder" ? 3 : 180, .01f);
+                         name == "HueShiftAdder" ? 3 : 180, name == "HueShiftAdder" ? .01f : 1.f);
                    else {
-                       n("amplitude", .5f, -3, 3, .01f);
-                       n("frequency", .5f, 0, 10, .01f);
+                       const bool rotation = name == "RotationOscillator";
+                       const bool position = name == "PositionOscillator";
+                       const bool positive = name == "GlowOscillator" || name == "OpacityOscillator";
+                       n("amplitude", .5f, positive ? 0.f : rotation ? -180.f : position ? -1.f : -3.f,
+                         rotation ? 180.f : position ? 1.f : 3.f, .01f);
+                       n("frequency", .5f, 0, name == "HueShiftOscillator" ? 10 : 4, .01f);
                    }
                    if (name.find("Rotation") != std::string::npos || name.find("Position") != std::string::npos)
                        af.Dropdown("Axis",

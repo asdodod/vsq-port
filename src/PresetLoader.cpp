@@ -3,6 +3,7 @@
 #include "DefaultPresets.hpp"
 #include "main.hpp"
 #include "beatsaber-hook/shared/config/rapidjson-utils.hpp"
+#include "PresetDocument.hpp"
 #include <fstream>
 #include <sstream>
 #include <filesystem>
@@ -109,7 +110,7 @@ static void ParseTrailResources(const rapidjson::Value &obj, SaberTrailData &tra
     trail.glowTexture = GetString(obj, "glowTexture", GetString(obj, "glowTextureName"));
     trail.colorTextureBase64 = GetString(obj, "colorTextureBase64");
     trail.glowTextureBase64 = GetString(obj, "glowTextureBase64");
-    trail.textureWrap = std::clamp(GetInt(obj, "textureWrap", 1), 0, 2);
+    trail.textureWrap = std::clamp(GetInt(obj, "textureWrap", 1), 0, 3);
     auto count = [](UnityEngine::Vector2 value) {
         return UnityEngine::Vector2{std::clamp(value.x, 1.f, 16.f), std::clamp(value.y, 1.f, 16.f)};
     };
@@ -199,6 +200,7 @@ bool PresetLoader::LoadFromJsonString(std::string_view json, Preset &outPreset) 
         return false;
     }
 
+    PresetDocument::NormalizeLegacyTrails(doc);
     outPreset.version = GetInt(doc, "version", 1);
     if (outPreset.version > 2) {
         VS_LOG("Preset version %d is newer than supported version 2", outPreset.version);
@@ -235,7 +237,16 @@ bool PresetLoader::LoadFromJsonString(std::string_view json, Preset &outPreset) 
             part.glowTexture = GetString(pObj, "glowTexture");
             part.colorTextureBase64 = GetString(pObj, "colorTextureBase64");
             part.glowTextureBase64 = GetString(pObj, "glowTextureBase64");
-            part.textureWrap = std::clamp(GetInt(pObj, "textureWrap", 0), 0, 2);
+            part.textureWrap = std::clamp(GetInt(pObj, "textureWrap", 0), 0, 3);
+            SaberTrailData atlas;
+            ParseTrailResources(pObj, atlas);
+            part.colorAtlasCount = atlas.colorAtlasCount;
+            part.glowAtlasCount = atlas.glowAtlasCount;
+            part.colorAtlasSpeedFlip = atlas.colorAtlasSpeedFlip;
+            part.glowAtlasSpeedFlip = atlas.glowAtlasSpeedFlip;
+            part.lookDir = GetVector3(pObj, "lookDir");
+            part.useLookDir = GetBool(pObj, "useLookDir");
+            part.disableGlowPass = GetBool(pObj, "disableGlowPass");
             if (auto list = FindMemberCaseInsensitive(pObj, "animators"); list && list->IsArray())
                 for (auto &a : list->GetArray()) {
                     if (!a.IsObject())

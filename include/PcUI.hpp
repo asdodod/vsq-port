@@ -17,6 +17,8 @@ void Number(Transform *parent, const std::string &label, float value, float lo, 
             std::function<void(float)> changed, Color tint = {1, 1, 1, 1}, float sensitivityCoef = 1);
 Transform *Popup(Transform *parent, float x, float y, float w, float h, Color color = {.1f, .1f, .1f, 1});
 void ClosePopup();
+void CloseTopPopup();
+void SetPopupCleanup(std::function<void()> cleanup);
 void Toggle(Transform *parent, const std::string &label, bool value, std::function<void(bool)> changed);
 void Dropdown(Transform *parent, const std::string &label, const std::string &value, std::vector<std::string> values,
               std::function<void(std::string)> changed);
@@ -62,4 +64,8 @@ void EditFloatGradient(Transform *parent, rapidjson::Value &keys, float fallback
 void BuildAnimators(Form &form, rapidjson::Value &part, PresetDocument &doc, std::function<void()> changed,
                     std::function<void()> rebuild);
 void TrailGradientFields(Form &form, rapidjson::Value &trail, PresetDocument &doc, std::function<void()> changed);
+void AssetDropdown(Transform *parent, const std::string &label, rapidjson::Value &object, const char *key,
+                   PresetDocument &doc, bool texture, std::function<void()> changed);
+void TextureField(Transform *parent, const std::string &label, rapidjson::Value &object, const char *prefix,
+                  PresetDocument &doc, std::function<void()> changed);
 } // namespace VainSabers::PCUI

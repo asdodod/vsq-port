@@ -28,7 +28,11 @@ namespace VainSabers::PCUI {
 namespace {
 UnityW<UnityEngine::Sprite> roundSprite, arrowSprite, solidSprite;
 UnityW<UnityEngine::Material> noGlow, fontMaterial;
-UnityW<UnityEngine::GameObject> activePopup;
+struct PopupEntry {
+    UnityW<UnityEngine::GameObject> object;
+    std::function<void()> cleanup;
+};
+std::vector<PopupEntry> popups;
 UnityEngine::Material *FontMaterial() {
     if (!fontMaterial)
         if (auto source = BSML::Helpers::GetMainUIFontMaterial()) {
@@ -163,16 +167,33 @@ Transform *Panel(Transform *parent, float x, float y, float w, float h, const st
     return Box(root, 1, 7, w - 2, h - 8);
 }
 void ClosePopup() {
-    if (activePopup) {
-        activePopup->SetActive(false);
-        UnityEngine::Object::Destroy(activePopup);
-        activePopup = nullptr;
+    while (!popups.empty())
+        CloseTopPopup();
+}
+void CloseTopPopup() {
+    if (popups.empty())
+        return;
+    auto entry = std::move(popups.back());
+    popups.pop_back();
+    if (entry.cleanup)
+        entry.cleanup();
+    if (entry.object) {
+        entry.object->SetActive(false);
+        UnityEngine::Object::Destroy(entry.object);
     }
 }
+void SetPopupCleanup(std::function<void()> cleanup) {
+    if (!popups.empty())
+        popups.back().cleanup = std::move(cleanup);
+}
 Transform *Popup(Transform *parent, float x, float y, float w, float h, Color color) {
-    ClosePopup();
+    bool nested = !popups.empty() && popups.back().object &&
+                  parent->IsChildOf(popups.back().object->get_transform());
+    if (!nested)
+        ClosePopup();
     auto root = Box(parent, x, y, w, h);
-    activePopup = root->get_gameObject();
+    auto activePopup = root->get_gameObject();
+    popups.push_back({activePopup, {}});
     activePopup->set_name("VainSabers local popup");
     // Popup keys must not be descendants of PcNumberDrag. EventSystem walks
     // ancestors for pointer-down/up; otherwise pressing a key starts another
@@ -194,7 +215,7 @@ Transform *Popup(Transform *parent, float x, float y, float w, float h, Color co
     Back(root, color);
     root->GetChild(0)->GetComponent<UnityEngine::UI::Image *>()->set_raycastTarget(true);
     auto blocker = Box(root, -200, -200, w + 400, h + 400);
-    Button(blocker, "", [] { ClosePopup(); }, {0, 0, 0, 0});
+    Button(blocker, "", [] { CloseTopPopup(); }, {0, 0, 0, 0});
     blocker->SetAsFirstSibling();
     return root;
 }
@@ -301,7 +322,7 @@ void Number(Transform *parent, const std::string &label, float value, float lo, 
                        valid = end == buffer->size() && std::isfinite(v);
                    } catch (...) {
                    }
-                   ClosePopup();
+                   CloseTopPopup();
                    if (valid)
                        update(v);
                },
@@ -373,7 +394,7 @@ void Dropdown(Transform *parent, const std::string &label, const std::string &va
                              auto text = Button(
                                  Box(list, 0, j * 4.f, width, 4), item,
                                  [item, holder, current, changed] {
-                                     ClosePopup();
+                                     CloseTopPopup();
                                      *current = item;
                                      if (*holder)
                                          (*holder)->set_text(StringW(item));

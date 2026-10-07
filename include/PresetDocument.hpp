@@ -36,10 +36,23 @@ struct PresetDocument {
         object.AddMember(k, rapidjson::Value(), json.GetAllocator());
         return *Find(object, key);
     }
+    static void NormalizeLegacyTrails(rapidjson::Document &document) {
+        auto list = Find(document, "bladeTrails"), legacy = Find(document, "bladeTrail");
+        if (!legacy || !legacy->IsObject() || (list && list->IsArray() && !list->Empty()))
+            return;
+        rapidjson::Value trails(rapidjson::kArrayType), trail;
+        trail.CopyFrom(*legacy, document.GetAllocator());
+        trails.PushBack(trail, document.GetAllocator());
+        if (list)
+            list->Swap(trails);
+        else
+            document.AddMember(rapidjson::Value("bladeTrails", document.GetAllocator()), trails, document.GetAllocator());
+    }
     bool Parse(std::string_view source) {
         json.Parse(source.data(), source.size());
         if (json.HasParseError() || !json.IsObject())
             return false;
+        NormalizeLegacyTrails(json);
         auto parts = Find(json, "parts");
         if (!parts || !parts->IsArray())
             return false;
@@ -116,16 +129,58 @@ struct PresetDocument {
     }
     static float Component(rapidjson::Value &object, const char *key, size_t index, float fallback) {
         auto v = Find(object, key);
+        if (v && v->IsObject() && index < 3) {
+            const char *axis[] = {"x", "y", "z"};
+            return Number(*v, axis[index], fallback);
+        }
         return v && v->IsArray() && v->Size() > index && (*v)[index].IsNumber() ? (*v)[index].GetFloat() : fallback;
     }
     void SetComponent(rapidjson::Value &object, const char *key, size_t index, float value, float fallback = 0) {
         auto &v = Ensure(object, key);
+        if (v.IsObject() && index < 3) {
+            const char *axis[] = {"x", "y", "z"};
+            SetNumber(v, axis[index], value);
+            return;
+        }
         if (!v.IsArray())
             v.SetArray();
         while (v.Size() <= index)
             v.PushBack(fallback, json.GetAllocator());
         v[index].SetFloat(value);
         dirty = true;
+    }
+    void SetAsset(rapidjson::Value &object, const char *key, const std::string &filename) {
+        // An imported preset's embedded bytes must not override a new selection.
+        if (filename != "None" && filename == Text(object, key, ""))
+            return;
+        SetText(object, key, filename == "None" ? "" : filename);
+        std::string embeddedKey = std::string_view(key) == "objFile" ? "objBase64" : std::string(key) + "Base64";
+        SetText(object, embeddedKey.c_str(), "");
+        if (auto alias = Find(object, std::string(key) + "Name"))
+            alias->SetString(filename == "None" ? "" : filename.c_str(), json.GetAllocator());
+    }
+    void EnsureAdvancedRings(rapidjson::Value &p) {
+        auto &rings = Ensure(p, "rings");
+        if (!rings.IsArray())
+            rings.SetArray();
+        if (!rings.Empty())
+            return;
+        for (const char *prefix : {"start", "end"}) {
+            std::string pre = prefix;
+            rapidjson::Value ring(rapidjson::kObjectType);
+            SetNumber(ring, "position", pre == "start" ? 0 : 1);
+            SetNumber(ring, "radius", Number(p, (pre + "Radius").c_str(), .03f));
+            for (size_t i = 0; i < 3; ++i)
+                SetComponent(ring, "color", i, Component(p, (pre + "Color").c_str(), i, 1), 1);
+            SetNumber(ring, "customWeight", Number(p, (pre + "CustomWeight").c_str(), 1));
+            SetNumber(ring, "glow", Number(p, (pre + "Glow").c_str(), 1));
+            SetNumber(ring, "opacity", Number(p, (pre + "Opacity").c_str(), 1));
+            SetFlag(ring, "inverted", Flag(p, "inverted", false));
+            SetNumber(ring, "offsetX", 0);
+            SetNumber(ring, "offsetY", 0);
+            SetNumber(ring, "uvOffset", 0);
+            rings.PushBack(ring, json.GetAllocator());
+        }
     }
     void AddPart(bool copy = false) {
         rapidjson::Value value(rapidjson::kObjectType);
